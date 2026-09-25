@@ -1,0 +1,105 @@
+/* =========================================================================
+   PARALLAX 업무폰 — 토큰
+   조용하고 명확한 화면. 색은 상태에만, 나머지는 여백과 1px 선으로 나눈다.
+   ========================================================================= */
+
+@font-face{
+  font-family:"Pretendard";
+  src:url("../fonts/PretendardVariable.woff2") format("woff2-variations");
+  font-weight:45 920; font-style:normal; font-display:swap;
+}
+
+:root{
+  /* 바탕 */
+  --surface:#F5F5F7;
+  --surface-elevated:rgba(255,255,255,.78);
+  --surface-solid:#FFFFFF;
+  --surface-sunken:#EBEBED;
+  --fill:rgba(120,120,128,.12);      /* 옅은 채움 (컨트롤 바탕) */
+  --fill-strong:rgba(120,120,128,.20);
+
+  /* 글자 */
+  /* 바탕에 아주 옅은 색 기운이 깔려 있어서(글래스가 빨아들일 것이 있어야 한다)
+     글자색은 그 기운 위에서도 4.5:1 이 나오는 값으로 한 단계씩 내려 두었다 */
+  --ink:#1D1D1F;
+  --secondary:#67676C;
+  --tertiary:#7A7A7F;       /* 강조하지 않는 메타에만. 정보가 실린 글자에는 쓰지 않는다 */
+
+  /* 선 */
+  --separator:rgba(60,60,67,.18);
+  --separator-soft:rgba(60,60,67,.10);
+
+  /* 상태색 — 여기 말고 다른 곳에 쓰지 않는다 */
+  --blue:#007AFF;      /* 선택 · 연결 · 현재 위치 */
+  --orange:#FF9F0A;    /* 재확인 필요 */
+  --red:#FF3B30;       /* 긴급 위험 */
+  --green:#34C759;     /* 확인 완료 */
+  /* 위 색은 채움·점·마커용. 글자로 쓸 때는 아래 값을 쓴다 (4.5:1 이상) */
+  --blue-text:#0064CE;
+  --orange-text:#975900;
+  --red-text:#C0271D;
+  --green-text:#1D7732;
+  --blue-tint:rgba(0,122,255,.10);
+  --orange-tint:rgba(255,159,10,.12);
+  --red-tint:rgba(255,59,48,.10);
+  --green-tint:rgba(52,199,89,.12);
+
+  /* 모서리 — 16~20 수준으로 절제 */
+  --r-lg:20px;
+  --r-md:16px;
+  --r-sm:12px;
+  --r-xs:8px;
+  --r-pill:980px;
+
+  /* ---- 유리 ----
+     떠 있는 것은 바탕을 비쳐 보이게 한다. 뒤가 비치려면 바탕에 변화가 있어야 하므로
+     화면 바탕에 아주 옅은 그라데이션을 깔아 둔다(device.css). */
+  --glass:rgba(255,255,255,.58);        /* 기본 판 */
+  --glass-2:rgba(255,255,255,.72);      /* 위에 뜨는 판 (상태 바·Inspector) */
+  --glass-thin:rgba(255,255,255,.42);   /* 컨트롤 바탕 */
+  --glass-hi:rgba(255,255,255,.75);     /* 판 위쪽 1px 하이라이트 */
+  --glass-edge:rgba(60,60,67,.10);      /* 판 둘레 1px */
+  --blur:blur(24px) saturate(190%);
+  --blur-lg:blur(34px) saturate(190%);
+
+  /* 그림자 — 떠 있는 것에만 아주 옅게 */
+  --shadow-glass:0 6px 22px rgba(28,32,48,.07), 0 1px 2px rgba(28,32,48,.05);
+  --shadow-dock:0 10px 34px rgba(28,32,48,.12), 0 1px 3px rgba(28,32,48,.06);
+  --shadow-pip:0 16px 46px rgba(28,32,48,.18);
+
+  /* 글자 크기 */
+  --t-display:30px;    /* 화면 제목 */
+  --t-title:21px;      /* 섹션 제목 */
+  --t-body:16px;
+  --t-body-sm:15px;
+  --t-caption:13px;
+  --t-micro:12px;
+
+  /* 간격 — 넉넉하게 */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px;
+  --sp-5:24px; --sp-6:32px; --sp-7:44px;
+
+  /* 기기 실측 — 아이폰 듀오 (mm 를 그대로 쓴다)
+     펼친 본체 164.6 × 117.8 · 접은 본체 84.1 × 117.8 (두께 11.3)
+     내부 화면 157.8 × 110.9 · 커버 화면 77.2 × 112.3
+     --mm 은 device.css 가 화면 크기에 맞춰 정한다. 목업과 실기기가 같은 비율이 된다. */
+  --mm:4.4px;
+  --dev-w:calc(164.6 * var(--mm));
+  --dev-h:calc(117.8 * var(--mm));
+  --dev-closed-w:calc(84.1 * var(--mm));
+  --bezel-x:calc(3.4 * var(--mm));
+  --bezel-y:calc(3.45 * var(--mm));
+  --chassis:#17171A;
+
+  --rail-w:78px;
+  --ctrl-w:132px;     /* 오른쪽 데모 조작 바 */
+  --tap:44px;
+  --statusbar-h:58px;
+  --dock-h:66px;
+
+  --font:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+         "Pretendard", "Noto Sans KR", sans-serif;
+
+  --ease:cubic-bezier(.32,.72,0,1);
+  --spring:cubic-bezier(.34,1.26,.64,1);   /* 놓을 때 살짝 튀며 앉는다 */
+}

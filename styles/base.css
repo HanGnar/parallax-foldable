@@ -1,0 +1,231 @@
+/* =========================================================================
+   PARALLAX 업무폰 — 기본
+   타이포 위계 / 버튼 / 컨트롤 / 목록 / 토스트
+   버튼은 텍스트·아이콘 버튼을 기본으로 쓰고, 채운 파랑은 화면당 하나까지.
+   ========================================================================= */
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+/* 다시 그릴 때마다 갈아 끼우는 껍데기. 배치에는 영향이 없다 */
+.fill{display:contents}
+html,body{height:100%}
+body{
+  /* 바탕은 기기 화면과 다른 색이어야 기기가 '물건'으로 읽힌다 */
+  margin:0; background:var(--page); color:var(--page-ink);
+  font-family:var(--font); font-size:var(--t-body); line-height:1.45;
+  letter-spacing:-.01em; -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+  /* 기기가 세로를 다 쓰도록, 조작은 오른쪽 세로 바로 물린다 */
+  display:flex; flex-direction:row; align-items:stretch; gap:var(--sp-3);
+  padding:var(--sp-3);
+}
+h1,h2,h3,p,ul,ol,figure{margin:0}
+ul,ol{list-style:none; padding:0}
+button,input,textarea,select{font:inherit; color:inherit; letter-spacing:inherit}
+button{cursor:pointer; -webkit-tap-highlight-color:transparent}
+
+:focus{outline:none}
+:focus-visible{outline:2.5px solid var(--blue); outline-offset:2px; border-radius:var(--r-xs)}
+.skip{position:fixed; top:-60px; left:12px; z-index:200; background:var(--surface-solid);
+  color:var(--blue); padding:12px 18px; border-radius:var(--r-sm); text-decoration:none;
+  font-weight:600}
+.skip:focus{top:12px}
+
+/* ---------- 타이포 위계 ---------- */
+.display{font-size:var(--t-display); font-weight:700; letter-spacing:-.025em; line-height:1.2}
+.title{font-size:var(--t-title); font-weight:650; letter-spacing:-.02em; line-height:1.3}
+.body{font-size:var(--t-body)}
+.body-sm{font-size:var(--t-body-sm)}
+.cap{font-size:var(--t-caption); color:var(--secondary)}
+.micro{font-size:var(--t-micro); color:var(--secondary)}
+.dim{color:var(--secondary)}
+.num{font-variant-numeric:tabular-nums; letter-spacing:0}
+.ell{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.sr{position:absolute; width:1px; height:1px; margin:-1px; overflow:hidden;
+    clip:rect(0 0 0 0); white-space:nowrap}
+
+/* 섹션 머리: 제목 + 오른쪽 보조 행동 */
+.head{display:flex; align-items:baseline; gap:var(--sp-3); margin-bottom:var(--sp-3)}
+.head__x{margin-left:auto}
+
+/* ---------- 버튼 ---------- */
+/* 텍스트 버튼 — 기본값 */
+.tbtn{
+  min-height:var(--tap); display:inline-flex; align-items:center; gap:6px;
+  padding:0 var(--sp-2); border:0; background:transparent; color:var(--blue-text);
+  font-size:var(--t-body-sm); font-weight:550; border-radius:var(--r-xs);
+  transition:opacity .15s;
+}
+.tbtn:hover{opacity:.62}
+.tbtn:active{opacity:.4}
+.tbtn[disabled]{color:var(--tertiary); cursor:not-allowed; opacity:1}
+.tbtn--ink{color:var(--ink)}
+.tbtn--quiet{color:var(--secondary)}
+.tbtn--danger{color:var(--red-text)}
+
+/* 아이콘 버튼 */
+.ibtn{
+  position:relative; width:34px; height:34px; flex:0 0 auto;
+  display:inline-grid; place-items:center; border:0; border-radius:var(--r-pill);
+  background:transparent; color:var(--secondary); transition:background .15s, color .15s;
+}
+.ibtn::after{content:""; position:absolute; inset:-5px}   /* 44px 터치 영역 */
+.ibtn:hover{background:var(--fill); color:var(--ink)}
+.ibtn[aria-pressed="true"]{background:var(--blue-tint); color:var(--blue-text)}
+.ibtn[disabled]{color:var(--tertiary); opacity:.45; cursor:not-allowed}
+.ibtn[disabled]:hover{background:transparent}
+
+/* 채운 버튼 — 화면에서 가장 중요한 실행 하나에만 */
+.fbtn{
+  min-height:var(--tap); display:inline-flex; align-items:center; justify-content:center;
+  gap:8px; padding:0 var(--sp-5); border:0; border-radius:var(--r-sm);
+  background:var(--blue-text); color:#fff; font-size:var(--t-body-sm); font-weight:600;
+  transition:opacity .15s;
+}
+.fbtn:hover{opacity:.88}
+.fbtn:active{opacity:.7}
+.fbtn[disabled]{background:var(--fill-strong); color:var(--tertiary); cursor:not-allowed}
+.fbtn--wide{width:100%}
+
+/* 옅은 채움 버튼 — 보조 실행 */
+.sbtn{
+  min-height:var(--tap); display:inline-flex; align-items:center; justify-content:center;
+  gap:7px; padding:0 var(--sp-4); border:0; border-radius:var(--r-sm);
+  background:var(--fill); color:var(--ink); font-size:var(--t-body-sm); font-weight:550;
+  transition:background .15s;
+}
+.sbtn:hover{background:var(--fill-strong)}
+.sbtn[disabled]{color:var(--tertiary); cursor:not-allowed; opacity:.6}
+
+/* ---------- 분절 선택 ---------- */
+.seg{display:inline-flex; padding:3px; gap:2px; border-radius:14px;
+  background:var(--glass-thin);
+  -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+  box-shadow:inset 0 0 0 .5px var(--glass-edge)}
+.seg button{
+  position:relative; min-height:34px; padding:0 14px; border:0; border-radius:10px;
+  background:transparent; color:var(--ink); font-size:var(--t-caption); font-weight:550;
+  transition:background .18s var(--ease);
+}
+.seg button::after{content:""; position:absolute; inset:-5px 0}
+.seg button[aria-pressed="true"]{background:rgba(255,255,255,.94);
+  box-shadow:0 1px 3px rgba(28,32,48,.10), inset 0 1px 0 #fff}
+
+/* ---------- 상태 표시 ---------- */
+.status{display:inline-flex; align-items:center; gap:6px; font-size:var(--t-caption);
+        color:var(--secondary); white-space:nowrap}
+.status b{color:var(--ink); font-weight:550}
+.pip-dot{width:7px; height:7px; border-radius:50%; flex:0 0 auto; background:var(--tertiary)}
+.pip-dot[data-s="red"]{background:var(--red)}
+.pip-dot[data-s="orange"]{background:var(--orange)}
+.pip-dot[data-s="green"]{background:var(--green)}
+.pip-dot[data-s="blue"]{background:var(--blue)}
+
+/* 상태 글자 — 배지가 아니라 색 있는 글자로 */
+.stx{font-size:var(--t-caption); font-weight:550}
+.stx[data-s="red"]{color:var(--red-text)}
+.stx[data-s="orange"]{color:var(--orange-text)}
+.stx[data-s="green"]{color:var(--green-text)}
+.stx[data-s="blue"]{color:var(--blue-text)}
+
+/* 아주 절제한 태그 (출처 표기에만) */
+.src{
+  display:inline-flex; align-items:center; height:20px; padding:0 7px;
+  border-radius:var(--r-xs); background:rgba(255,255,255,.62); color:var(--secondary);
+  box-shadow:inset 0 0 0 .5px var(--glass-edge);
+  font-size:11px; font-weight:600; letter-spacing:.04em; white-space:nowrap;
+}
+
+/* ---------- 목록: 한 장의 유리판 위에 1px 선으로 나눈다 ---------- */
+.list{
+  display:flex; flex-direction:column; padding:4px; border-radius:20px;
+  background:var(--glass);
+  -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 0 0 .5px var(--glass-edge),
+             var(--shadow-glass);
+}
+.list > *{flex:0 0 auto}
+.row{
+  position:relative; width:100%; display:flex; align-items:flex-start; gap:var(--sp-3);
+  padding:var(--sp-3) var(--sp-3); border:0; background:transparent; text-align:left;
+  color:var(--ink); border-radius:16px; min-height:var(--tap);
+  transition:background .15s;
+}
+.row:not(:last-child)::after{
+  content:""; position:absolute; left:var(--sp-3); right:var(--sp-3); bottom:0; height:1px;
+  background:var(--glass-edge);
+}
+button.row:hover{background:rgba(255,255,255,.55)}
+button.row:hover::after,.row.is-on::after{background:transparent}
+.row.is-on{background:var(--blue-tint)}
+.row.is-on + .row::after{background:transparent}
+.row__b{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px}
+.row__t{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
+
+/* ---------- 입력 ---------- */
+.field{
+  width:100%; padding:var(--sp-3); border:0; border-radius:14px;
+  background:rgba(255,255,255,.55); box-shadow:inset 0 0 0 .5px var(--glass-edge);
+  font-size:var(--t-body-sm); min-height:var(--tap); resize:vertical; line-height:1.5;
+}
+.field::placeholder{color:var(--secondary)}
+.field:focus-visible{outline-offset:0}
+
+input[type="range"]{
+  -webkit-appearance:none; appearance:none; width:100%; height:var(--tap);
+  background:transparent; cursor:pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track{height:4px; border-radius:2px;
+  background:var(--fill-strong)}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none; width:20px; height:20px;
+  margin-top:-8px; border-radius:50%; background:#fff; border:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.2), 0 0 0 .5px rgba(0,0,0,.04)}
+input[type="range"]::-moz-range-track{height:4px; border-radius:2px; background:var(--fill-strong)}
+input[type="range"]::-moz-range-thumb{width:18px; height:18px; border:0; border-radius:50%;
+  background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.2)}
+
+/* 스위치 */
+.switch{
+  position:relative; width:50px; height:30px; flex:0 0 auto; padding:0; border:0;
+  border-radius:var(--r-pill); background:var(--fill-strong); transition:background .22s var(--ease);
+}
+.switch::before{content:""; position:absolute; inset:-7px}
+.switch::after{
+  content:""; position:absolute; top:2px; left:2px; width:26px; height:26px;
+  border-radius:50%; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.18);
+  transition:transform .22s var(--ease);
+}
+.switch[aria-pressed="true"]{background:var(--green)}
+.switch[aria-pressed="true"]::after{transform:translateX(20px)}
+
+/* ---------- 아이콘 ---------- */
+.ic{display:block; flex:0 0 auto}
+.chev{color:var(--tertiary)}
+
+/* ---------- 빈 상태 ---------- */
+.empty{padding:var(--sp-6) var(--sp-4); text-align:center; color:var(--tertiary);
+       font-size:var(--t-body-sm)}
+
+/* ---------- 토스트 ---------- */
+.toasts{
+  position:fixed; left:50%; bottom:28px; transform:translateX(-50%); z-index:300;
+  display:flex; flex-direction:column; gap:var(--sp-2); align-items:center;
+  pointer-events:none; width:min(460px, calc(100vw - 32px));
+}
+.toast{
+  pointer-events:auto; display:flex; align-items:center; gap:var(--sp-3);
+  padding:14px var(--sp-4); background:rgba(28,28,30,.86); color:#fff;
+  -webkit-backdrop-filter:blur(24px) saturate(180%); backdrop-filter:blur(24px) saturate(180%);
+  border-radius:var(--r-md); font-size:var(--t-body-sm); font-weight:500;
+  box-shadow:var(--shadow-pip);
+  animation:toast .28s var(--ease);
+}
+.toast__t{flex:1; min-width:0}
+.toast button{border:0; background:transparent; color:#6cb6ff; font-weight:600;
+  font-size:var(--t-caption); min-height:32px; padding:0 4px}
+@keyframes toast{from{opacity:0; transform:translateY(12px) scale(.96)}to{opacity:1; transform:none}}
+
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important; transition-duration:.01ms !important}
+}

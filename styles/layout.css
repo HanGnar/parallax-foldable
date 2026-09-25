@@ -1,0 +1,345 @@
+/* =========================================================================
+   PARALLAX 업무폰 — 배치
+   데모 전환 / 화면 틀 / 상단 상태 바 / 접은 화면 / 2분할 / 플로팅 Dock /
+   Inspector / PiP
+   ========================================================================= */
+
+/* ---------- 데모 조작 (제품 UI 아님) ----------
+   위아래에 두면 기기가 쓸 세로를 잡아먹는다. 오른쪽 세로 바로 물려 둔다.
+   이름을 .bar 로 두면 재생 컨트롤의 .bar 와 부딪쳐 둘 다 망가진다. */
+.ctrl{
+  flex:0 0 var(--ctrl-w); align-self:center;
+  display:flex; flex-direction:column; gap:var(--sp-4);
+  padding:var(--sp-3) var(--sp-2);
+}
+.demo__name{font-size:var(--t-caption); font-weight:700; letter-spacing:.14em;
+  color:var(--page-dim); margin-bottom:var(--sp-1)}
+.ctrl__g{display:flex; flex-direction:column; gap:7px}
+.ctrl__k{font-size:var(--t-micro); color:var(--page-dim); padding-left:2px}
+.demo__seg{display:flex; flex-direction:column; padding:3px; gap:2px;
+  background:var(--page-fill); border-radius:14px}
+.demo__seg button{
+  position:relative; min-height:var(--tap); padding:0 12px; border:0; border-radius:12px;
+  background:transparent; color:var(--page-ink); font-size:var(--t-caption); font-weight:550;
+}
+.demo__seg button[aria-pressed="true"]{background:var(--page-sel); color:var(--page-sel-ink);
+  box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.ctrl .hint{justify-content:center}
+.ctrl .tbtn{color:var(--page-accent); justify-content:center}
+
+/* ---------- 안쪽 화면 ----------
+   기기 몸통 안의 표시 영역. 크기와 3D 배치는 device.css 가 맡는다 */
+.screen{
+  position:absolute; z-index:4;
+  top:var(--bezel-y); bottom:var(--bezel-y);
+  left:var(--bezel-x); right:var(--bezel-x);
+  border-radius:calc(4.2 * var(--mm));
+  background:var(--surface); color:var(--ink);
+  display:flex; flex-direction:column; overflow:hidden;
+  transform:translateZ(1px);
+}
+
+/* ---------- 상단 상태 바 (얇은 반투명) ---------- */
+.statusbar{
+  flex:0 0 auto; z-index:30; min-height:var(--statusbar-h);
+  display:flex; align-items:center; gap:var(--sp-4);
+  padding:var(--sp-2) var(--sp-5);
+  background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-lg); backdrop-filter:var(--blur-lg);
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 1px 0 var(--glass-edge);
+}
+.sb__main{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;
+  text-align:left; background:transparent; border:0; padding:var(--sp-1) 0; color:inherit}
+.sb__l1{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
+.sb__id{font-size:var(--t-caption); font-weight:650; letter-spacing:.02em}
+.sb__sep{color:var(--separator)}
+.sb__l2{display:flex; align-items:center; gap:var(--sp-2); min-width:0;
+  font-size:var(--t-caption); color:var(--secondary)}
+.sb__order{color:var(--ink); min-width:0}
+.sb__right{flex:0 0 auto; display:flex; align-items:center; gap:var(--sp-4)}
+.sb__gear{display:flex; align-items:center; gap:7px; color:var(--secondary)}
+.cscreen .statusbar{padding:var(--sp-2) var(--sp-4); min-height:52px}
+/* 좁으면 상태 바를 두 줄 안에 둔다 (내 역할은 상세에서 본다) */
+.screen.is-narrow .statusbar{gap:var(--sp-3); padding:var(--sp-2) var(--sp-4)}
+.screen.is-narrow .sb__role{display:none}
+.screen.is-narrow .sb__right{gap:var(--sp-2)}
+.cscreen .sb__role,
+.cscreen .sb__right .sb__gear{display:none}
+/* 커버는 좁다. 첫 줄은 접어 넘기지 않고 한 줄로 둔다 */
+.cscreen .statusbar{gap:var(--sp-2)}
+[data-mode="mock"] .cscreen .status__t{display:none}   /* 목업 커버는 좁다. 색점만 남긴다 */
+.cscreen .sb__l1{flex-wrap:nowrap; min-width:0; gap:6px}
+.cscreen .sb__l1 > *{white-space:nowrap}
+.cscreen .sb__id{flex:0 0 auto}
+.cscreen .sb__l1 .cap{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis}
+
+/* ---------- 본문 ---------- */
+/* 이름이 타이포 클래스 .body 와 겹치지 않도록 .stage 를 쓴다 */
+.stage{flex:1; min-height:0; position:relative; display:flex; flex-direction:column}
+
+/* =========================================================================
+   접은 화면 — 세로 흐름, 카드 그리드 금지
+   ========================================================================= */
+.cover{flex:1; min-height:0; overflow-y:auto; padding:var(--sp-6) var(--sp-5) var(--sp-7)}
+.cover__lead{margin-bottom:var(--sp-5)}
+.cover__count{color:var(--blue-text); font-weight:650}
+/* 화면에서 단 하나의 카드 */
+.hero{
+  background:var(--glass-2); border-radius:20px;
+  -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 0 0 .5px var(--glass-edge),
+             var(--shadow-glass);
+  padding:var(--sp-5); display:flex; flex-direction:column; gap:var(--sp-3);
+  width:100%; text-align:left; border:0; color:inherit;
+  transition:transform .2s var(--ease);
+}
+button.hero:active{transform:scale(.985)}
+.hero__meta{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap;
+  color:var(--secondary); font-size:var(--t-caption)}
+.hero__tx{font-size:var(--t-title); font-weight:600; letter-spacing:-.02em; line-height:1.35}
+.hero__go{display:flex; align-items:center; gap:5px; color:var(--blue-text);
+  font-size:var(--t-body-sm); font-weight:550; margin-top:var(--sp-1)}
+
+.cover__block{padding:var(--sp-5) 0; border-top:1px solid var(--glass-edge)}
+.cover__block:first-of-type{border-top:0}
+.cover__k{font-size:var(--t-caption); color:var(--secondary); margin-bottom:var(--sp-3)}
+
+/* 길게 눌러 녹음 */
+.rec{
+  width:100%; min-height:62px; display:flex; align-items:center; gap:var(--sp-3);
+  padding:0 var(--sp-4); border:0; border-radius:18px;
+  background:var(--glass); color:var(--ink); text-align:left;
+  -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 0 0 .5px var(--glass-edge);
+  transition:background .2s var(--ease), transform .2s var(--ease);
+}
+.rec[data-rec="on"]{background:var(--red-tint)}
+.rec[data-rec="hold"]{transform:scale(.98); background:var(--fill-strong)}
+.rec__d{width:14px; height:14px; border-radius:50%; background:var(--tertiary); flex:0 0 auto}
+.rec[data-rec="on"] .rec__d{background:var(--red); border-radius:3px; animation:blink 1.2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.rec__t{flex:1; min-width:0; display:flex; flex-direction:column; gap:2px}
+
+.gear-lines{display:flex; flex-direction:column; gap:var(--sp-3)}
+.gear-line{display:flex; align-items:center; gap:var(--sp-3); font-size:var(--t-body-sm)}
+.gear-line__k{flex:1; color:var(--secondary)}
+
+/* =========================================================================
+   펼친 화면 — 왼쪽 사이드 탭 + 2분할
+   탭을 아래에서 옆으로 옮겨 세로 공간을 돌려받았다.
+   ========================================================================= */
+.work{flex:1; min-height:0; display:flex}
+
+/* 사이드 탭 — 왼쪽에 제 자리를 갖는 기둥.
+   떠 있지 않고 위아래로 꽉 찬다. 본문은 그 옆에서 시작한다. */
+.rail{
+  flex:0 0 auto; width:var(--rail-w); align-self:stretch; z-index:40;
+  padding:var(--sp-3) 7px var(--sp-4);
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+  background:var(--glass-thin);
+  -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+  box-shadow:inset 1px 0 0 var(--glass-hi);
+}
+.rail::-webkit-scrollbar{display:none}
+.rail__b{
+  position:relative; flex:0 0 auto; width:100%; min-height:56px;
+  border:0; background:transparent; border-radius:16px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+  color:var(--secondary); font-size:11px; font-weight:550; text-align:center;
+  transition:background .18s, color .18s;
+}
+/* 손가락은 세로로 쓸면 탭이 스크롤되고, 가로로 쓸어야 탭이 끌려 나온다.
+   풀어 두면 끌기가 스크롤에 잡아먹혀 멀티태스킹이 아예 시작되지 않는다 */
+.rail__b{touch-action:pan-y}
+.rail__b:hover{background:rgba(255,255,255,.58); color:var(--ink)}
+.rail__b[aria-pressed="true"]{color:var(--blue-text); background:var(--blue-tint)}
+/* 조합은 기능 탭과 떼어 맨 아래에 둔다 */
+.rail__div{flex:0 0 auto; width:34px; height:1px; background:var(--glass-edge);
+  margin:var(--sp-3) 0 var(--sp-2); margin-top:auto}
+
+/* 세로로 가른 두 칸. 붙여 놓지 않고 창처럼 띄워 사이를 벌린다.
+   벌어진 틈으로 바탕이 비쳐서 두 칸이 '떠 있는 것'으로 읽힌다. */
+@property --ratio{ syntax:'<number>'; inherits:false; initial-value:0.5 }
+
+.split{
+  position:relative; flex:1; min-width:0; min-height:0; display:grid;
+  padding:var(--sp-3);                      /* 사방으로 고르게 띄운다 */
+  grid-template-columns:calc(var(--ratio, .5) * 100% - 7px) 14px 1fr;
+  transition:--ratio .42s var(--spring);
+}
+.split.is-resizing{transition:none}
+.split[data-panes="1"],
+.split[data-panes="0"]{grid-template-columns:1fr}
+
+.pane{
+  min-width:0; min-height:0; position:relative; overflow:hidden;
+  display:flex; flex-direction:column;
+  border-radius:22px;
+  background:var(--glass);
+  -webkit-backdrop-filter:var(--blur); backdrop-filter:var(--blur);
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 0 0 .5px var(--glass-edge),
+             var(--shadow-glass);
+  transition:transform .28s var(--ease);
+}
+.work.is-dropping .pane{transform:scale(.985)}   /* 자리를 내어 주는 느낌 */
+
+/* 닫힌 칸은 있던 자리에 잠깐 남았다가 사그라든다 (js/workspace.js 의 morph) */
+.pghost{
+  position:absolute; z-index:44; pointer-events:none; transition:none;
+  grid-column:auto; grid-row:auto;
+}
+
+.pane__h{
+  position:relative; flex:0 0 auto; display:flex; align-items:center; gap:var(--sp-2);
+  padding:var(--sp-4) var(--sp-3) var(--sp-3) var(--sp-5);
+}
+.pane__t{flex:1; min-width:0; display:flex; align-items:center; gap:var(--sp-2)}
+.pane__a{flex:0 0 auto; display:flex; align-items:center; gap:2px}
+.pane__b{flex:1; min-height:0; overflow-y:auto; padding:0 var(--sp-5) var(--sp-5);
+  container-type:inline-size; scrollbar-width:thin}
+
+/* 조합 고르기 — 사이드 탭 옆에서 열린다 */
+.combos{
+  position:absolute; left:calc(var(--rail-w) + var(--sp-4)); bottom:var(--sp-4);
+  z-index:41; width:264px; padding:var(--sp-2);
+  background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-lg); backdrop-filter:var(--blur-lg);
+  border-radius:20px;
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 0 0 .5px var(--glass-edge),
+             var(--shadow-dock);
+  animation:pop .24s var(--spring);
+}
+@keyframes pop{from{opacity:0; transform:translateX(-12px) scale(.94)}
+               to{opacity:1; transform:none}}
+.combo{
+  width:100%; display:flex; align-items:center; gap:var(--sp-3); padding:10px var(--sp-3);
+  border:0; background:transparent; border-radius:12px; text-align:left; color:var(--ink);
+  min-height:var(--tap);
+}
+.combo:hover{background:var(--glass-thin)}
+.combo[aria-pressed="true"]{color:var(--blue-text)}
+.combo__b{flex:1; min-width:0; display:flex; flex-direction:column}
+
+/* 아무것도 열지 않았을 때 */
+.blank{
+  grid-column:1/-1; display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:var(--sp-3); text-align:center; padding:var(--sp-6);
+  color:var(--secondary);
+}
+.blank__i{color:var(--tertiary)}
+.blank .title{color:var(--ink)}
+.blank .cap{line-height:1.6}
+
+/* ---------- 두 칸 사이의 그래버 ----------
+   테두리 있는 버튼이 아니라 얇은 알약 하나. 잡으면 굵어지고 파래진다. */
+.gutter{position:relative; display:grid; place-items:center}
+.gutter__b{
+  position:relative; width:5px; height:46px; border-radius:var(--r-pill);
+  background:var(--separator); cursor:col-resize; touch-action:none;
+  transition:background .18s var(--ease), width .18s var(--ease),
+             height .18s var(--ease);
+}
+.gutter__b::after{content:""; position:absolute; inset:-14px -20px}  /* 44px 잡이 영역 */
+.gutter__b:hover,
+.gutter__b:focus-visible{background:var(--tertiary); width:6px; height:58px}
+.gutter__b.is-held{background:var(--blue); width:6px; height:66px}
+.gutter__b:focus-visible{outline-offset:6px}
+
+/* ---------- 끌어다 놓을 자리 ----------
+   점선 테두리는 애플 쪽 언어가 아니다. 은은하게 채운 둥근 면으로 알린다. */
+.dz{
+  position:absolute; inset:var(--sp-3);
+  z-index:46; display:none; gap:14px; pointer-events:none;
+}
+.work.is-dropping .dz{display:flex}
+.dz__h{
+  flex:1; border-radius:22px; display:grid; place-items:center;
+  color:var(--secondary); font-size:var(--t-caption); font-weight:550;
+  background:rgba(255,255,255,.5);
+  -webkit-backdrop-filter:blur(14px) saturate(180%);
+  backdrop-filter:blur(14px) saturate(180%);
+  box-shadow:inset 0 0 0 1px var(--glass-edge);
+  transform:scale(.97); opacity:.9;
+  transition:box-shadow .18s var(--ease), background .18s var(--ease),
+             color .18s var(--ease), transform .24s var(--spring), opacity .18s;
+}
+.dz__h.is-on{
+  color:var(--blue-text); background:var(--blue-tint);
+  box-shadow:inset 0 0 0 2.5px var(--blue), 0 8px 26px rgba(0,122,255,.16);
+  transform:scale(1); opacity:1;
+}
+
+/* ---------- 끌고 다니는 조각 ----------
+   들어 올린 판처럼. 3D 바깥(body)에 붙여 잘리지 않게 한다 */
+.chip{
+  position:fixed; z-index:400; pointer-events:none;
+  transform:translate(-50%,-150%);
+  display:flex; align-items:center; gap:8px;
+  padding:10px 16px; border-radius:18px;
+  background:rgba(255,255,255,.86); color:var(--ink);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);
+  backdrop-filter:blur(22px) saturate(180%);
+  font-size:var(--t-body-sm); font-weight:600;
+  box-shadow:0 18px 44px rgba(28,32,48,.26), 0 0 0 .5px var(--glass-edge),
+             inset 0 1px 0 rgba(255,255,255,.8);
+  animation:lift .2s var(--spring);
+}
+@keyframes lift{from{transform:translate(-50%,-150%) scale(.8); opacity:0}}
+.rail__b.is-lifted{opacity:.32}
+
+/* 좁은 화면: 위아래로 */
+/* 좁으면 위아래로 가른다. 손잡이도 같이 눕는다 */
+.screen.is-narrow .split{
+  grid-template-columns:1fr;
+  grid-template-rows:calc(var(--ratio, .5) * 100% - 7px) 14px 1fr;
+}
+.screen.is-narrow .split[data-panes="1"],
+.screen.is-narrow .split[data-panes="0"]{grid-template-rows:1fr}
+.screen.is-narrow .gutter__b{width:46px; height:5px; cursor:row-resize}
+.screen.is-narrow .gutter__b:hover,
+.screen.is-narrow .gutter__b:focus-visible{width:58px; height:6px}
+.screen.is-narrow .gutter__b.is-held{width:66px; height:6px}
+.screen.is-narrow .dz{flex-direction:column}
+.screen.is-narrow .pane__b{padding:0 var(--sp-4) var(--sp-5)}
+.screen.is-narrow .pane__h{padding:var(--sp-3) var(--sp-3) var(--sp-2) var(--sp-4)}
+.screen.is-narrow{--rail-w:62px}
+.screen.is-narrow .rail__b{min-height:50px; font-size:10px}
+
+/* =========================================================================
+   Inspector — 오른쪽에서 열린다
+   ========================================================================= */
+.inspector{
+  position:absolute; top:0; right:0; bottom:0; z-index:60; width:min(400px,92%);
+  background:var(--glass-2);
+  -webkit-backdrop-filter:var(--blur-lg); backdrop-filter:var(--blur-lg);
+  box-shadow:inset 1px 0 0 var(--glass-hi), -1px 0 0 var(--glass-edge), var(--shadow-pip);
+  display:flex; flex-direction:column;
+  animation:slide .42s var(--ease);
+}
+@keyframes slide{from{transform:translateX(100%)}to{transform:none}}
+.cscreen .inspector{width:100%}
+.insp__h{flex:0 0 auto; display:flex; align-items:center; gap:var(--sp-3);
+  padding:var(--sp-4) var(--sp-3) var(--sp-3) var(--sp-5)}
+.insp__b{flex:1; min-height:0; overflow-y:auto; padding:0 var(--sp-5) var(--sp-5)}
+.insp__f{flex:0 0 auto; padding:var(--sp-4) var(--sp-5);
+  box-shadow:0 -1px 0 var(--separator-soft)}
+.scrim{position:absolute; inset:0; z-index:59; background:rgba(0,0,0,.14);
+  animation:fade .3s ease-out}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* =========================================================================
+   PiP — 다른 기능을 열어도 재생이 이어진다
+   ========================================================================= */
+.pip{
+  position:absolute; z-index:50; width:248px; border-radius:20px;
+  background:var(--glass-2); overflow:hidden;
+  -webkit-backdrop-filter:var(--blur-lg); backdrop-filter:var(--blur-lg);
+  box-shadow:inset 0 1px 0 var(--glass-hi), 0 0 0 .5px var(--glass-edge), var(--shadow-pip);
+  animation:pop-in .32s var(--ease);
+}
+@keyframes pop-in{from{opacity:0; transform:scale(.9)}to{opacity:1; transform:none}}
+.pip__h{display:flex; align-items:center; gap:6px; padding:8px 6px 8px var(--sp-3);
+  cursor:grab; touch-action:none; font-size:var(--t-micro); color:var(--secondary)}
+.pip__h:active{cursor:grabbing}
+.pip__c{display:flex; align-items:center; gap:var(--sp-2); padding:0 var(--sp-3) var(--sp-3)}

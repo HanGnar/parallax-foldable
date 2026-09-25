@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ko" data-mode="mock" data-posture="open">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>PARALLAX 업무폰</title>
+<meta name="description" content="PARALLAX 폴더블 업무폰 프로토타입. 모든 데이터는 DEMO INCIDENT 01 의 가상 시나리오입니다.">
+
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/layout.css">
+<link rel="stylesheet" href="styles/panels.css">
+<link rel="stylesheet" href="styles/device.css">
+
+<!-- 첫 그림부터 올바른 배치로 그리기 위해 모드만 미리 정한다.
+     실제 동작은 js/device.js 가 맡는다. -->
+<script>
+(function(){
+  var r = document.documentElement;
+  var q = new URLSearchParams(location.search).get('mode');
+  r.dataset.mode = (q === 'real' || q === 'mock') ? q
+    : (matchMedia('(pointer: coarse)').matches && innerWidth < 1100) ? 'real' : 'mock';
+  var t = new URLSearchParams(location.search).get('tone');
+  if (t !== 'white' && t !== 'night') { try{ t = localStorage.getItem('parallax.phone.tone'); }catch(e){} }
+  r.dataset.tone = (t === 'night') ? 'night' : 'white';
+  var th = new URLSearchParams(location.search).get('theme');
+  if (th === 'dark' || th === 'light') r.dataset.theme = th;
+  var dp = navigator.devicePosture && navigator.devicePosture.type;
+  r.dataset.posture =
+    (dp === 'folded' || !matchMedia('(min-width: 700px)').matches) ? 'closed' : 'open';
+})();
+</script>
+</head>
+<body>
+
+<a class="skip" href="#body">작업 영역으로 건너뛰기</a>
+
+<!-- 기기 목업 -->
+<div class="rig" id="rig">
+  <div class="device" id="device">
+    <span class="shadow" aria-hidden="true"></span>
+
+    <!-- 오른쪽 짝 : 고정 -->
+    <div class="leaf leaf--right" aria-hidden="true">
+      <div class="face face--inner-right"><div class="wrap"><div class="half"></div></div></div>
+      <div class="face face--back"></div>
+      <div class="edge">
+        <span class="btn btn--side"></span>
+        <span class="btn btn--up"></span>
+        <span class="btn btn--dn"></span>
+      </div>
+    </div>
+
+    <!-- 왼쪽 짝 : 힌지를 축으로 돈다. 뒷면이 커버 화면이다 -->
+    <div class="leaf leaf--left">
+      <div class="face face--inner-left" aria-hidden="true">
+        <div class="wrap"><div class="half"></div></div>
+      </div>
+      <div class="edge" aria-hidden="true"></div>
+      <div class="face face--cover">
+        <div class="cscreen" id="cscreen">
+          <header class="statusbar" data-sb="cover"></header>
+          <div class="stage" id="cbody"></div>
+          <aside class="inspector" id="inspector-c" aria-label="작전 상태 상세" hidden></aside>
+          <div class="scrim" id="scrim-c" hidden></div>
+        </div>
+      </div>
+    </div>
+
+    <span class="spine" aria-hidden="true"></span>
+
+    <!-- 안쪽 화면 : 다 폈을 때만 직접 만진다 -->
+    <main class="screen" id="screen" data-fold="open">
+      <header class="statusbar" data-sb="inner"></header>
+      <div class="stage" id="body" tabindex="-1"></div>
+      <aside class="inspector" id="inspector" aria-label="작전 상태 상세" hidden></aside>
+      <div class="scrim" id="scrim" hidden></div>
+      <div class="pip" id="pip" role="dialog" aria-label="플로팅 영상" hidden></div>
+    </main>
+  </div>
+</div>
+
+<!-- 데모 조작 (제품 UI 아님) · 화면 옆으로 물려 두어 기기가 세로를 다 쓴다 -->
+<aside class="ctrl demo" aria-label="데모 조작">
+  <span class="demo__name">PARALLAX</span>
+
+  <div class="ctrl__g">
+    <span class="ctrl__k">화면</span>
+    <div class="demo__seg" role="group" aria-label="화면 상태 전환">
+      <button type="button" data-fold="closed" aria-pressed="false">접은 화면</button>
+      <button type="button" data-fold="open" aria-pressed="true">펼친 화면</button>
+    </div>
+  </div>
+
+  <div class="ctrl__g">
+    <span class="ctrl__k">기기 색</span>
+    <div class="demo__seg" role="group" aria-label="기기 색">
+      <button type="button" data-tone="white" aria-pressed="true">은색</button>
+      <button type="button" data-tone="night" aria-pressed="false">남색</button>
+    </div>
+  </div>
+
+  <button type="button" class="hint" id="foldbtn" aria-pressed="true"
+          title="누르면 접히고 펴집니다. 좌우로 끌면 각도, ← → 로 15도씩">
+    <span id="foldbtn-t">접기</span>
+  </button>
+
+  <button type="button" class="tbtn" id="reset">초기화</button>
+</aside>
+
+<div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+<script src="js/icons.js"></script>
+<script src="js/data.js"></script>
+<script src="js/model-glb.js"></script>
+<script src="js/store.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/panel-status.js"></script>
+<script src="js/panel-scenes.js"></script>
+<script src="js/panel-space.js"></script>
+<script src="js/panel-voice.js"></script>
+<script src="js/panel-notes.js"></script>
+<script src="js/panel-ar.js"></script>
+<script src="js/cover.js"></script>
+<script src="js/workspace.js"></script>
+<script src="js/app.js"></script>
+<script src="js/device.js"></script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+/* =========================================================================
+   PARALLAX 업무폰 — 기기
+   아이폰 듀오 실측(mm)을 그대로 쓴다. 펼치면 가로로 넓은 화면, 접으면 세로 폰.
+
+   각도는 --fold 하나로만 움직인다 (0 접힘 · 180 펼침).
+   --fold 에서 파생된 transform·opacity 에는 절대로 transition 을 걸지 않는다.
+   --fold 하나만 보간하면 나머지는 매 프레임 따라온다. 둘 다 걸면 끊긴다.
+   ========================================================================= */
+
+@property --fold{ syntax:'<number>'; inherits:true; initial-value:180 }
+
+:root{
+  --fold:180;
+  --closed:calc((180 - var(--fold)) / 180);   /* 0 펼침 → 1 접힘 */
+  --open:calc(var(--fold) / 180);             /* 1 펼침 → 0 접힘 */
+  /* 90도에서 1, 양 끝에서 0. '지금 얼마나 기울어 있나' */
+  --tilt:calc(4 * var(--open) * var(--closed));
+  transition:--fold .62s cubic-bezier(.32,.72,0,1);
+}
+
+/* =========================================================================
+   기기 재질
+   테두리는 거울처럼 닦인 티타늄, 힌지는 미세 블라스팅 무광.
+   이 둘의 질감 차이가 실물의 인상을 만든다. 단색으로 칠하면 금속으로 안 보인다.
+   ========================================================================= */
+:root{
+  /* Star White */
+  --rim-a:#F2F3F5; --rim-b:#B9BCC2; --rim-c:#6E7379; --rim-d:#4C5056;
+  --rim-spark:rgba(255,255,255,.92);
+  --hinge-a:#8A8F96; --hinge-b:#6A6F76; --hinge-c:#4A4E54;
+  --back-a:#E4E6E9; --back-b:#BFC3C9;
+  --dev-shadow:rgba(0,0,0,.34);
+}
+:root[data-tone="night"]{
+  /* Night Sky */
+  --rim-a:#9DAAC4; --rim-b:#5F6D88; --rim-c:#303B50; --rim-d:#1B2432;
+  --rim-spark:rgba(206,224,255,.78);
+  --hinge-a:#414D60; --hinge-b:#2F3A4A; --hinge-c:#222B37;
+  --back-a:#2E3949; --back-b:#161D28;
+  --dev-shadow:rgba(0,0,0,.40);
+}
+
+/* 화면 밖(바탕·데모 바·안내·주석)만 어두워진다.
+   기기 안 화면은 실제 기기 화면이라 그대로 둔다. */
+:root{
+  --page:#E6E6E9; --page-ink:#1D1D1F; --page-dim:#76767B;
+  --page-fill:rgba(120,120,128,.14); --page-sel:#FFFFFF; --page-sel-ink:#1D1D1F;
+  --page-accent:#0064CE;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --page:#0A0A0C; --page-ink:#F2F2F4; --page-dim:#8A8A90;
+    --page-fill:rgba(255,255,255,.10); --page-sel:rgba(255,255,255,.20); --page-sel-ink:#FFFFFF;
+    --page-accent:#6FB2FF; --dev-shadow:rgba(0,0,0,.66);
+  }
+}
+:root[data-theme="dark"]{
+  --page:#0A0A0C; --page-ink:#F2F2F4; --page-dim:#8A8A90;
+  --page-fill:rgba(255,255,255,.10); --page-sel:rgba(255,255,255,.20); --page-sel-ink:#FFFFFF;
+  --page-accent:#6FB2FF; --dev-shadow:rgba(0,0,0,.66);
+}
+/* 끄는 동안에는 손가락을 그대로 따라와야 한다 */
+:root.is-dragging{transition:none}
+@media (prefers-reduced-motion:reduce){ :root{transition:none} }
+
+/* ---------- 목업 크기 : 화면에 맞춰 mm 를 정한다 ---------- */
+:root[data-mode="mock"]{
+  /* 조작 바가 옆으로 빠져서 세로를 거의 다 쓴다.
+     기울었을 때 커 보이는 만큼은 --tilt 에 묶인 scale 이 흡수한다(.device). */
+  --mm:min( calc((100vw - 40px - var(--ctrl-w)) / 168),
+            calc((100vh - 28px) / 121), 9px );
+}
+
+/* =========================================================================
+   목업 — PC 에서 3D 로 펴지고 접힌다
+   ========================================================================= */
+.rig{
+  position:relative; width:100%; flex:1; min-height:var(--dev-h);
+  display:flex; align-items:center; justify-content:center;
+  perspective:3000px; perspective-origin:50% 50%;
+  touch-action:none; user-select:none; -webkit-user-select:none;
+}
+.rig:focus{outline:none}
+
+.device{
+  position:relative; width:var(--dev-w); height:var(--dev-h);
+  transform-style:preserve-3d;
+  /* 접으면 오른쪽 반쪽만 남는다. 그만큼 되밀어 기기를 가운데에 둔다 */
+  translate:calc(-25% * var(--closed)) 0;
+  /* 기울면 가까운 쪽이 커 보여 창 밖으로 나간다.
+     도는 동안만 살짝 물러서게 해서, 다 폈을 때의 크기를 최대로 쓴다. */
+  scale:calc(1 - .14 * var(--tilt));
+}
+
+/* 바닥 그림자 — 펼칠수록 넓고 옅게 */
+.shadow{
+  /* 접으면 기기가 오른쪽 반쪽만 남으므로 그림자도 같이 옮긴다 */
+  position:absolute; left:calc(50% + 25% * var(--closed)); bottom:calc(-9 * var(--mm));
+  width:calc((86 + 74 * var(--open)) * var(--mm));
+  height:calc(7 * var(--mm)); border-radius:50%;
+  translate:-50% 0; transform:translateZ(-6px);
+  background:radial-gradient(50% 50% at 50% 50%, var(--dev-shadow), rgba(0,0,0,0) 72%);
+  opacity:calc(.42 + .34 * var(--closed));
+  pointer-events:none;
+}
+
+/* ---------- 두 짝 ---------- */
+.leaf{
+  position:absolute; top:0; height:100%; width:50%;
+  transform-style:preserve-3d;
+}
+.leaf--right{right:0}
+.leaf--left{
+  left:0; transform-origin:right center;
+  transform:rotateY(calc((180 - var(--fold)) * 1deg));
+}
+
+.face{
+  position:absolute; inset:0; overflow:hidden;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  /* 테두리 폭(3mm 남짓) 안에서 빛이 꺾이도록 stop 을 mm 로 잡는다.
+     % 로 잡으면 얇은 베젤이 그라데이션의 밝은 끝만 잘라 써서 하얗게 뜬다. */
+  background:
+    var(--side),
+    /* 위아래 모서리의 꺾임 + 가운데는 어두운 금속 */
+    linear-gradient(180deg,
+      var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
+      var(--rim-c) calc(1.2 * var(--mm)), var(--rim-d) calc(2.6 * var(--mm)),
+      var(--rim-d) calc(100% - 2.6 * var(--mm)),
+      var(--rim-c) calc(100% - 1.2 * var(--mm)),
+      var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
+}
+
+/* 옆모서리의 꺾임은 '바깥으로 드러난 쪽'에만 있다.
+   힌지 쪽에도 넣으면 다 폈을 때 가운데에 밝은 금이 하나 생긴다. */
+.face{
+  --side:linear-gradient(90deg,
+    var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
+    var(--rim-c) calc(1.2 * var(--mm)), rgba(0,0,0,0) calc(2.6 * var(--mm)),
+    rgba(0,0,0,0) calc(100% - 2.6 * var(--mm)),
+    var(--rim-c) calc(100% - 1.2 * var(--mm)),
+    var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
+}
+.face--inner-left{
+  --side:linear-gradient(90deg,
+    var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
+    var(--rim-c) calc(1.2 * var(--mm)), rgba(0,0,0,0) calc(2.6 * var(--mm)));
+}
+.face--inner-right{
+  --side:linear-gradient(90deg,
+    rgba(0,0,0,0) calc(100% - 2.6 * var(--mm)),
+    var(--rim-c) calc(100% - 1.2 * var(--mm)),
+    var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
+}
+
+/* 모서리 네 곳의 짧은 반짝임. 화면 아래(z-index 1)에 깔려 테두리에서만 읽힌다 */
+.face{
+  --sp:calc(5.5 * var(--mm));
+  --sp-tl:conic-gradient(from 188deg at 50% 50%, var(--rim-spark), rgba(255,255,255,0) 11%);
+  --sp-tr:conic-gradient(from 278deg at 50% 50%, var(--rim-spark), rgba(255,255,255,0) 11%);
+  --sp-br:conic-gradient(from   8deg at 50% 50%, var(--rim-spark), rgba(255,255,255,0) 11%);
+  --sp-bl:conic-gradient(from  98deg at 50% 50%, var(--rim-spark), rgba(255,255,255,0) 11%);
+}
+.face::before{
+  content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  border-radius:inherit; background-repeat:no-repeat;
+  background-size:var(--sp) var(--sp);
+  opacity:.42;
+}
+.face--inner-left::before{
+  background-image:var(--sp-tl), var(--sp-bl);
+  background-position:0 0, 0 100%;
+}
+.face--inner-right::before{
+  background-image:var(--sp-tr), var(--sp-br);
+  background-position:100% 0, 100% 100%;
+}
+.face--cover::before,
+.face--back::before{
+  background-image:var(--sp-tl), var(--sp-tr), var(--sp-br), var(--sp-bl);
+  background-position:0 0, 100% 0, 100% 100%, 0 100%;
+}
+
+/* 바깥쪽 모서리만 둥글다. 힌지 쪽은 각지게 둔다 */
+.face--inner-left {border-radius:calc(5.5*var(--mm)) 0 0 calc(5.5*var(--mm))}
+.face--inner-right{border-radius:0 calc(5.5*var(--mm)) calc(5.5*var(--mm)) 0}
+
+/* 애플 특유의 연속 곡률. 지원하는 곳에서만 쓰고, 없으면 둥근 모서리로 그대로 보인다 */
+@supports (corner-shape: squircle){
+  .face, .wrap, .cscreen, .screen{corner-shape:squircle}
+}
+/* 접었을 때 앞뒤가 되는 두 면. 뒤집혀 있으므로 translateZ 로 1px 앞에 세운다
+   (0도에서 두 면이 같은 평면에 겹쳐 깜빡이는 것을 막는다) */
+.face--cover,
+.face--back{
+  border-radius:calc(5.5*var(--mm));
+  transform:rotateY(180deg) translateZ(1px);
+}
+/* 뒷면은 테두리와 같은 금속이되 결이 가로로 눕는다 */
+.face--back{
+  background:
+    radial-gradient(120% 90% at 28% 4%, rgba(255,255,255,.22), rgba(255,255,255,0) 58%),
+    linear-gradient(100deg, var(--back-a) 0%, var(--back-b) 52%, var(--back-a) 100%);
+}
+
+/* 접힐수록 안쪽이 어두워진다. 빛은 열린 바깥쪽에서 들어온다 */
+.face--inner-left::after,
+.face--inner-right::after{
+  content:""; position:absolute; inset:0; z-index:5; pointer-events:none;
+  opacity:var(--closed);
+}
+.face--inner-left::after {background:linear-gradient(90deg,  rgba(0,0,0,0), rgba(0,0,0,.46))}
+.face--inner-right::after{background:linear-gradient(270deg, rgba(0,0,0,0), rgba(0,0,0,.46))}
+
+/* ---------- 안쪽 화면을 반씩 나눠 얹는 자리 ----------
+   .half 는 내부 화면 전체 폭을 갖고, 왼쪽 면에서는 왼쪽 끝에,
+   오른쪽 면에서는 오른쪽 끝에 붙는다. 둘을 합치면 한 장이 된다. */
+.wrap{
+  position:absolute; z-index:2; top:var(--bezel-y); bottom:var(--bezel-y);
+  overflow:hidden; background:var(--surface);
+}
+.face--inner-left  .wrap{left:var(--bezel-x); right:0;
+  border-radius:calc(4.2*var(--mm)) 0 0 calc(4.2*var(--mm))}
+.face--inner-right .wrap{right:var(--bezel-x); left:0;
+  border-radius:0 calc(4.2*var(--mm)) calc(4.2*var(--mm)) 0}
+.half{position:absolute; top:0; height:100%; width:calc(157.8 * var(--mm))}
+.face--inner-left  .half{left:0}
+.face--inner-right .half{right:0}
+
+/* 각도가 180 이 아닐 때만 쓰는 복제본. 만지지 못한다 */
+.ghost{position:absolute; inset:0; border-radius:0; pointer-events:none;
+  opacity:1 !important; visibility:visible !important; transform:none}
+
+/* ---------- 커버 화면 ---------- */
+/* 접힘 베젤 실측: 좌우 3.45mm · 상하 2.75mm.
+   이 기기의 인상은 사방 3mm 남짓한 얇은 베젤이 만든다. 두껍게 그리면 닮지 않는다. */
+.cscreen{
+  position:absolute; z-index:2; inset:calc(2.75*var(--mm)) calc(3.45*var(--mm));
+  border-radius:calc(4.2*var(--mm)); overflow:hidden;
+  /* 기기 화면은 바탕(페이지) 색을 물려받지 않는다. 페이지가 어두워져도 화면은 그대로다 */
+  color:var(--ink); display:flex; flex-direction:column;
+}
+
+/* =========================================================================
+   화면 바탕 — 유리가 빨아들일 것을 깔아 둔다
+   평평한 단색 위에서는 반투명 판이 아무것도 비추지 못해 유리로 읽히지 않는다.
+   기운은 아주 옅게(6%)만 준다. 이 바탕 위에서도 본문이 4.5:1 을 넘도록
+   글자색을 한 단계씩 내려 두었다(tokens.css).
+   ========================================================================= */
+.screen, .cscreen{
+  background:
+    radial-gradient(86% 64% at 4% -8%,   rgba(96,140,255,.06),  rgba(255,255,255,0) 58%),
+    radial-gradient(74% 56% at 106% 6%,  rgba(120,200,255,.06), rgba(255,255,255,0) 56%),
+    radial-gradient(68% 58% at 88% 108%, rgba(255,170,110,.06), rgba(255,255,255,0) 60%),
+    var(--surface);
+}
+
+/* 접히는 동안 보이는 복제본에서는 blur 를 끈다.
+   같은 화면이 세 벌(양쪽 반쪽 + 진짜)이라 유리판이 스무 겹 넘게 쌓인다.
+   반투명은 그대로라 겉보기 차이는 거의 없고, 도는 동안 프레임이 살아난다. */
+.ghost *{-webkit-backdrop-filter:none !important; backdrop-filter:none !important}
+
+/* =========================================================================
+   옆면 — 접으면 11.3mm, 펴면 5.2mm. 종이처럼 얇아 보이지 않게 한 장 세운다
+   ========================================================================= */
+.edge{
+  position:absolute; top:calc(5.5*var(--mm)); bottom:calc(5.5*var(--mm));
+  width:calc(5.2*var(--mm)); pointer-events:none;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  background:linear-gradient(180deg,
+    var(--rim-b) 0%, var(--rim-d) 26%, var(--rim-c) 50%, var(--rim-d) 74%, var(--rim-b) 100%);
+}
+/* 두께는 화면 뒤로 뻗고, 보이는 쪽은 바깥을 향한다.
+   (rotateX 를 빼면 안쪽 면이 앞으로 와서 정면에서도 비친다) */
+.leaf--right .edge{right:0; transform-origin:right center;
+  transform:rotateY(-90deg) rotateX(180deg)}
+.leaf--left  .edge{left:0;  transform-origin:left center;
+  transform:rotateY(90deg) rotateX(180deg)}
+/* 오른쪽 옆면의 측면 버튼(Touch ID 통합)과 볼륨 버튼 */
+.btn{
+  position:absolute; left:14%; right:14%; border-radius:999px;
+  background:linear-gradient(180deg, var(--rim-b), var(--rim-c));
+  box-shadow:0 0 0 .5px rgba(0,0,0,.28);
+}
+.btn--side{bottom:26%; height:9%}
+.btn--up  {bottom:44%; height:6.5%}
+.btn--dn  {bottom:52.5%; height:6.5%}
+
+/* =========================================================================
+   힌지 — 3D 프린팅 티타늄, 미세 블라스팅 무광.
+   테두리의 거울 광택과 달리 평평한 무광에 아주 얕은 세로 결만 둔다.
+   접었을 때 왼쪽 등으로 드러난다 (펴면 안쪽으로 숨는다).
+   ========================================================================= */
+.spine{
+  position:absolute; top:calc(2.4 * var(--mm)); bottom:calc(2.4 * var(--mm));
+  left:calc(50% - 2.6 * var(--mm)); width:calc(2.6 * var(--mm));
+  transform:translateZ(3px); pointer-events:none;
+  border-radius:calc(2.4*var(--mm)) 0 0 calc(2.4*var(--mm));
+  opacity:var(--closed);
+  -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,0) 0,
+    #000 calc(4 * var(--mm)), #000 calc(100% - 4 * var(--mm)), rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(180deg, rgba(0,0,0,0) 0,
+    #000 calc(4 * var(--mm)), #000 calc(100% - 4 * var(--mm)), rgba(0,0,0,0) 100%);
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.05) 1px 2px),
+    linear-gradient(90deg,
+      var(--hinge-c) 0%, var(--hinge-b) 34%, var(--hinge-a) 72%, var(--hinge-b) 100%);
+}
+
+/* =========================================================================
+   유리 반사 — 기울어 있을 때만 켠다
+   평평할 때도 덮으면 본문 대비가 깎인다(흰색 6%만 얹어도 4.5:1 아래로 내려간다).
+   그래서 세기를 --tilt 에 묶어 두고, 읽는 각도에서는 0 이 되게 한다.
+   ========================================================================= */
+.screen::after,
+.cscreen::after{
+  content:""; position:absolute; inset:0; z-index:95; pointer-events:none;
+  background:linear-gradient(105deg,
+    rgba(255,255,255,.14) 0%, rgba(255,255,255,.05) 20%, rgba(255,255,255,0) 40%);
+  translate:calc(-22% * var(--closed)) 0;
+  opacity:0;
+}
+/* 반사는 면마다 따로 논다. 도는 쪽이 세게 받고, 고정된 쪽은 거의 그대로다 */
+.face--inner-left  .ghost::after{opacity:var(--tilt)}
+.face--inner-right .ghost::after{opacity:calc(var(--tilt) * .22)}
+.cscreen::after{opacity:var(--tilt)}
+
+/* 평평할 때만 진짜 화면을 만진다. 나머지 각도에서는 복제본이 보인다 */
+.device .screen{opacity:0; visibility:hidden; pointer-events:none}
+.device.is-flat .screen{opacity:1; visibility:visible; pointer-events:auto}
+.device.is-flat .half{visibility:hidden}
+
+/* ---------- 조작 안내 ---------- */
+.hint{
+  display:inline-flex; align-items:center; gap:8px; min-height:var(--tap);
+  padding:0 14px; border:0; border-radius:var(--r-pill);
+  background:var(--page-fill); color:var(--page-ink);
+  font-size:var(--t-caption); font-weight:550;
+}
+.hint:hover{filter:brightness(1.12)}
+
+
+/* =========================================================================
+   실기기 — 3D 를 걷어내고 화면을 채운다
+   조상에 perspective / preserve-3d 가 남아 있으면 그 조상이 컨테이닝 블록이 되어
+   내부가 0 크기로 무너진다. 반드시 flat 으로 되돌린다.
+   ========================================================================= */
+:root[data-mode="real"]{ --mm:min(calc(100vw / 164.6), 7px) }
+:root[data-mode="real"][data-posture="closed"]{ --mm:min(calc(100vw / 84.1), 7px) }
+
+[data-mode="real"] body{display:block; padding:0; gap:0}
+[data-mode="real"] .ctrl,
+[data-mode="real"] .hint,
+[data-mode="real"] .shadow,
+[data-mode="real"] .spine,
+[data-mode="real"] .edge,
+[data-mode="real"] .face--back,
+[data-mode="real"] .face--inner-left,
+[data-mode="real"] .face--inner-right,
+[data-mode="real"] .leaf--right{display:none}
+
+[data-mode="real"] .rig{
+  position:static; perspective:none; display:block; min-height:0;
+  width:100%; height:100dvh; touch-action:auto;
+}
+[data-mode="real"] .device{
+  position:relative; transform-style:flat; translate:none; transform:none;
+  width:100%; height:100dvh;
+}
+[data-mode="real"] .leaf--left{
+  position:absolute; inset:0; width:100%; height:100%;
+  transform:none; transform-style:flat;
+}
+[data-mode="real"] .face--cover{
+  position:absolute; inset:0; transform:none; border-radius:0;
+  background:var(--surface);
+}
+[data-mode="real"] .face--cover .cscreen{position:absolute; inset:0; border-radius:0}
+[data-mode="real"] .screen{
+  position:absolute; inset:0; border-radius:0; transform:none;
+  opacity:1; visibility:visible; pointer-events:auto;
+}
+[data-mode="real"][data-posture="open"] .leaf--left{display:none}
+[data-mode="real"][data-posture="closed"] .screen{display:none}
+
+/* 힌지 위치를 OS 가 알려줄 때만 구역 크기를 그 값에 맞춘다 */
+@media (horizontal-viewport-segments: 2){
+  /* 왼쪽 사이드 탭이 먼저 자리를 먹으므로 그만큼 빼야 경계가 힌지에 맞는다 */
+  [data-mode="real"] .split{
+    grid-template-columns:
+      calc(env(viewport-segment-width 0 0) - var(--rail-w) - var(--sp-3)) 1fr !important;
+  }
+}
+
+/* 접힘·펼침 양쪽에 다 있는 것은 사라졌다 나타나지 않고 이어진다 */
+[data-mode="real"] .statusbar{view-transition-name:px-statusbar}
+
