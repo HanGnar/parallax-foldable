@@ -26,10 +26,41 @@ PX.panels.ar = (() => {
      다시 그릴 때마다 <model-viewer> 를 새로 만들면 WebGL 맥락과 모델 읽기가
      매번 되풀이된다. 하나만 만들어 두고 자리만 옮긴다.
      ========================================================================= */
-  /* 모형은 js/model-glb.js 에 data URL 로 실려 있다.
-     .glb 를 따로 읽으면 file:// 에서 막히고 배포 쪽에서는 서빙되지 않는다. */
-  const GLB = () => PX.GLB_AR || 'PARALLAX_AR_Glasses_ReferenceRebuilt_v3.glb';
+  /* ---------- 모형을 어디서 읽을까 ----------
+     한 가지 길만 두면 어딘가에서는 반드시 막힌다.
+       · file:// 은 같은 폴더의 .glb 조차 CORS 로 막는다 → data: 만 된다
+       · 배포된 곳은 보안 정책(CSP)이 data: 가져오기를 막는 일이 흔하다
+         → 그때는 같은 주소의 .glb 파일이나 blob: 로 읽어야 한다
+     그래서 되는 것부터 차례로 시도하고, 실패하면 다음 길로 넘어간다. */
+  /* 같은 모형을 두 이름으로 둔다. 내용은 같고 확장자만 다르다 —
+     .glb 를 아예 내주지 않는 배포처가 있어서, 거기서는 .glb.txt 로 받는다.
+     브라우저는 확장자가 아니라 파일 앞머리 바이트로 모형을 알아본다. */
+  const FILES = [
+    'PARALLAX_AR_Glasses_ReferenceRebuilt_v3.glb',
+    'PARALLAX_AR_Glasses_ReferenceRebuilt_v3.glb.txt',
+  ];
+  let blobOnce;
+  function asBlob() {
+    if (blobOnce !== undefined) return blobOnce;
+    blobOnce = null;
+    try {
+      const b64 = String(PX.GLB_AR || '').split(',')[1];
+      if (b64) {
+        const bin = atob(b64), buf = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+        blobOnce = URL.createObjectURL(new Blob([buf], { type:'model/gltf-binary' }));
+      }
+    } catch (_) {}
+    return blobOnce;
+  }
+  function routes() {
+    const offline = location.protocol === 'file:';
+    return (offline ? [PX.GLB_AR, asBlob()].concat(FILES)
+                    : FILES.concat([asBlob(), PX.GLB_AR])).filter(Boolean);
+  }
+
   let viewer = null, libAsked = false, ready = false;
+  let srcs = [], at = 0;
 
   /* WebGL 이 없으면 아예 만들지 않는다. 만들면 라이브러리가 안에서 터진다 */
   const canGL = () => {
@@ -56,10 +87,27 @@ PX.panels.ar = (() => {
     document.head.appendChild(t);
   }
 
+  /** 지금 길이 막혔으면 다음 길로. 다 막혔으면 안내로 바꾼다.
+      넘어가는 신호는 error 하나만 쓴다. 시간제한을 두었더니
+      느린 연결에서 '아직 읽는 중'인 것을 실패로 몰아 멀쩡한 길을 버렸다. */
+  function hop(v) {
+    if (ready) return;
+    at += 1;
+    if (at >= srcs.length) {
+      /* 길이 다 막힌 것과 WebGL 이 없는 것은 원인이 다르다. 문구도 달라야
+         어디를 손볼지 알 수 있다 */
+      const h = v.closest('.glb');
+      if (h) h.classList.add('is-blocked');
+      return;
+    }
+    v.setAttribute('src', srcs[at]);
+  }
+
   function make() {
     const v = document.createElement('model-viewer');
     v.className = 'glb__v';
-    v.setAttribute('src', GLB());
+    srcs = routes(); at = 0;
+    v.setAttribute('src', srcs[0]);
     v.setAttribute('alt', 'PARALLAX AR 글래스 3D 모형 (가상 장비)');
     v.setAttribute('camera-orbit', '0deg 90deg 85%');
     v.setAttribute('field-of-view', '26deg');
@@ -68,6 +116,13 @@ PX.panels.ar = (() => {
        가로로만 돌아간다. 손가락은 세로로 쓸면 화면이 스크롤되고,
        가로로 쓸어야 모형이 돈다 (touch-action) */
     v.setAttribute('camera-controls', '');
+    /* 에어팟 연결 화면처럼 천천히 혼자 돈다.
+       끌면 멈췄다가 손을 떼고 잠시 뒤 스스로 이어서 돈다 */
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      v.setAttribute('auto-rotate', '');
+      v.setAttribute('rotation-per-second', '16deg');
+      v.setAttribute('auto-rotate-delay', '900');
+    }
     v.setAttribute('min-camera-orbit', '-Infinity 90deg 85%');
     v.setAttribute('max-camera-orbit', 'Infinity 90deg 85%');
     v.setAttribute('touch-action', 'pan-y');
@@ -86,8 +141,12 @@ PX.panels.ar = (() => {
       if (v.loaded) { ready = true; mark(); return; }
       setTimeout(watch, 120);
     })();
-    v.addEventListener('error', () => { const h = v.closest('.glb');
-      if (h) h.classList.add('is-failed'); });
+    /* 읽기 실패일 때만 다음 길로. model-viewer 는 WebGL 맥락 같은 일로도
+       error 를 던지는데, 그걸로 넘어가면 멀쩡히 되던 길을 버리게 된다 */
+    v.addEventListener('error', e => {
+      const kind = e && e.detail && e.detail.type;
+      if (!kind || kind === 'loadfailure') hop(v);
+    });
     return v;
   }
 
@@ -107,7 +166,7 @@ PX.panels.ar = (() => {
               '<p class="micro">불러오는 중…</p>' +
             '</div>') +
         '</div>' +
-        '<p class="micro glb__cap">끌면 모형이 좌우로 돕니다 · DEMO 가상 장비</p>' +
+        '<p class="micro glb__cap">천천히 혼자 돕니다 · 끌면 직접 돌릴 수 있습니다 · DEMO 가상 장비</p>' +
       '</section>' +
 
       (fault

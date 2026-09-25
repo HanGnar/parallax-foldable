@@ -39,39 +39,31 @@
   transform:translateZ(1px);
 }
 
-/* ---------- 상단 상태 바 (얇은 반투명) ---------- */
+/* ---------- 상단 상태 바 ----------
+   진짜 폰의 상태 바처럼 한 줄만 쓴다. 시각 · 긴급도 · 배터리 · 통신 · 상세(>).
+   사건 번호와 지휘 지시는 '작전 상태 상세'로 넘겼다(ui.js).
+   여기가 두 줄이 되면 화면 맨 위를 그만큼 잡아먹는다. */
 .statusbar{
   flex:0 0 auto; z-index:30; min-height:var(--statusbar-h);
-  display:flex; align-items:center; gap:var(--sp-4);
-  padding:var(--sp-2) var(--sp-5);
+  display:flex; align-items:center; gap:var(--sp-3);
+  padding:1px var(--sp-4) 1px var(--sp-5);
   background:var(--glass-2);
   -webkit-backdrop-filter:var(--blur-lg); backdrop-filter:var(--blur-lg);
   box-shadow:inset 0 1px 0 var(--glass-hi), 0 1px 0 var(--glass-edge);
 }
-.sb__main{flex:1; min-width:0; display:flex; flex-direction:column; gap:1px;
-  text-align:left; background:transparent; border:0; padding:var(--sp-1) 0; color:inherit}
-.sb__l1{display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap}
-.sb__id{font-size:var(--t-caption); font-weight:650; letter-spacing:.02em}
-.sb__sep{color:var(--separator)}
-.sb__l2{display:flex; align-items:center; gap:var(--sp-2); min-width:0;
-  font-size:var(--t-caption); color:var(--secondary)}
-.sb__order{color:var(--ink); min-width:0}
-.sb__right{flex:0 0 auto; display:flex; align-items:center; gap:var(--sp-4)}
+.sb__now{flex:0 0 auto; font-size:var(--t-caption); font-weight:650; color:var(--ink)}
+.sb__gap{flex:1; min-width:var(--sp-2)}
+.sb__right{flex:0 0 auto; display:flex; align-items:center; gap:var(--sp-3)}
 .sb__gear{display:flex; align-items:center; gap:7px; color:var(--secondary)}
-.cscreen .statusbar{padding:var(--sp-2) var(--sp-4); min-height:52px}
-/* 좁으면 상태 바를 두 줄 안에 둔다 (내 역할은 상세에서 본다) */
-.screen.is-narrow .statusbar{gap:var(--sp-3); padding:var(--sp-2) var(--sp-4)}
-.screen.is-narrow .sb__role{display:none}
-.screen.is-narrow .sb__right{gap:var(--sp-2)}
-.cscreen .sb__role,
+/* 상세를 여는 > 는 줄 높이를 밀어내지 않는다. 터치 영역은 ::after 가 따로 갖는다 */
+.statusbar .sb__more{width:28px; height:28px}
+
+.cscreen .statusbar{gap:var(--sp-2); padding:1px var(--sp-3); min-height:32px}
+.cscreen .sb__right{gap:var(--sp-2)}
 .cscreen .sb__right .sb__gear{display:none}
-/* 커버는 좁다. 첫 줄은 접어 넘기지 않고 한 줄로 둔다 */
-.cscreen .statusbar{gap:var(--sp-2)}
 [data-mode="mock"] .cscreen .status__t{display:none}   /* 목업 커버는 좁다. 색점만 남긴다 */
-.cscreen .sb__l1{flex-wrap:nowrap; min-width:0; gap:6px}
-.cscreen .sb__l1 > *{white-space:nowrap}
-.cscreen .sb__id{flex:0 0 auto}
-.cscreen .sb__l1 .cap{flex:0 1 auto; min-width:0; overflow:hidden; text-overflow:ellipsis}
+:is(.screen.is-narrow, .screen.is-tall) .statusbar{gap:var(--sp-2); padding:1px var(--sp-4)}
+:is(.screen.is-narrow, .screen.is-tall) .sb__right{gap:var(--sp-2)}
 
 /* ---------- 본문 ---------- */
 /* 이름이 타이포 클래스 .body 와 겹치지 않도록 .stage 를 쓴다 */
@@ -288,23 +280,48 @@ button.hero:active{transform:scale(.985)}
 @keyframes lift{from{transform:translate(-50%,-150%) scale(.8); opacity:0}}
 .rail__b.is-lifted{opacity:.32}
 
-/* 좁은 화면: 위아래로 */
-/* 좁으면 위아래로 가른다. 손잡이도 같이 눕는다 */
-.screen.is-narrow .split{
+/* ---------- 위아래 2분할 ----------
+   가로로 누운 화면은 좌우로 가르고, 세로로 세운 화면은 위아래로 가른다.
+   정말 좁아졌을 때(is-narrow)도 마찬가지다. 손잡이와 놓을 자리도 같이 눕는다. */
+:is(.screen.is-narrow, .screen.is-tall) .split{
   grid-template-columns:1fr;
   grid-template-rows:calc(var(--ratio, .5) * 100% - 7px) 14px 1fr;
 }
-.screen.is-narrow .split[data-panes="1"],
-.screen.is-narrow .split[data-panes="0"]{grid-template-rows:1fr}
-.screen.is-narrow .gutter__b{width:46px; height:5px; cursor:row-resize}
-.screen.is-narrow .gutter__b:hover,
-.screen.is-narrow .gutter__b:focus-visible{width:58px; height:6px}
-.screen.is-narrow .gutter__b.is-held{width:66px; height:6px}
-.screen.is-narrow .dz{flex-direction:column}
+:is(.screen.is-narrow, .screen.is-tall) .split[data-panes="1"],
+:is(.screen.is-narrow, .screen.is-tall) .split[data-panes="0"]{grid-template-rows:1fr}
+:is(.screen.is-narrow, .screen.is-tall) .gutter__b{width:46px; height:5px; cursor:row-resize}
+:is(.screen.is-narrow, .screen.is-tall) .gutter__b:hover,
+:is(.screen.is-narrow, .screen.is-tall) .gutter__b:focus-visible{width:58px; height:6px}
+:is(.screen.is-narrow, .screen.is-tall) .gutter__b.is-held{width:66px; height:6px}
+:is(.screen.is-narrow, .screen.is-tall) .dz{flex-direction:column}
+
+/* 좁은 가로 화면 */
 .screen.is-narrow .pane__b{padding:0 var(--sp-4) var(--sp-5)}
 .screen.is-narrow .pane__h{padding:var(--sp-3) var(--sp-3) var(--sp-2) var(--sp-4)}
 .screen.is-narrow{--rail-w:62px}
 .screen.is-narrow .rail__b{min-height:50px; font-size:10px}
+
+/* ---------- 세로로 세웠을 때 : 사이드 탭이 아래 Dock 으로 눕는다 ----------
+   세로 화면에서 왼쪽 기둥은 가로 폭을 너무 많이 먹는다. 아래로 눕히면
+   본문이 폭을 다 쓰고, 손도 아래쪽이 닿기 쉽다. */
+.screen.is-tall{--rail-h:74px}
+.screen.is-tall .work{flex-direction:column}
+.screen.is-tall .rail{
+  order:2; width:auto; height:auto; flex:0 0 auto;
+  flex-direction:row; align-items:stretch; gap:4px;
+  padding:7px var(--sp-3) 11px;
+  overflow-x:auto; overflow-y:hidden;
+  box-shadow:inset 0 1px 0 var(--glass-hi);
+}
+.screen.is-tall .rail__b{width:auto; flex:1 1 0; min-width:54px; min-height:52px}
+/* 조합은 세로로 세워도 끝쪽에 따로 선다 */
+.screen.is-tall .rail__div{width:1px; height:32px; margin:auto 6px auto auto}
+.screen.is-tall .combos{
+  left:var(--sp-4); right:var(--sp-4); width:auto;
+  bottom:calc(var(--rail-h) + var(--sp-2));
+}
+.screen.is-tall .pane__b{padding:0 var(--sp-4) var(--sp-5)}
+.screen.is-tall .pane__h{padding:var(--sp-4) var(--sp-3) var(--sp-2) var(--sp-4)}
 
 /* =========================================================================
    Inspector — 오른쪽에서 열린다

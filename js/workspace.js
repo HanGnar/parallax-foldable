@@ -8,6 +8,13 @@ PX.workspace = (() => {
   const S = () => PX.store.state;
   const D = PX.data;
 
+  /* 위아래로 갈린 상태인가 — 세로로 세웠거나, 가로인데 정말 좁거나.
+     기기 방향을 직접 보지 않고 화면 비율이 내린 판정(app.js 의 measure)만 따른다 */
+  const stacked = () => {
+    const el = $('#screen');
+    return !!el && (el.classList.contains('is-tall') || el.classList.contains('is-narrow'));
+  };
+
   const MIN = .22, MAX = .78;          /* 한쪽이 너무 좁아지지 않게 */
   /* 손을 떼면 1/3 · 1/2 · 2/3 중 가까운 곳에 붙는다 (iPadOS 분할과 같은 단계) */
   const STOPS = [1/3, .5, 2/3];
@@ -105,9 +112,9 @@ PX.workspace = (() => {
   function hint(id, side) {
     const st = S(), other = side === 'l' ? 'r' : 'l';
     const here = st.panes[side], there = st.panes[other];
-    const narrow = $('#screen').classList.contains('is-narrow');
-    const A = narrow ? (side === 'l' ? '위' : '아래') : (side === 'l' ? '왼쪽' : '오른쪽');
-    const B = narrow ? (side === 'l' ? '아래' : '위') : (side === 'l' ? '오른쪽' : '왼쪽');
+    const up = stacked();
+    const A = up ? (side === 'l' ? '위' : '아래') : (side === 'l' ? '왼쪽' : '오른쪽');
+    const B = up ? (side === 'l' ? '아래' : '위') : (side === 'l' ? '오른쪽' : '왼쪽');
     if (here === id)  return '이미 ' + A + '에 있습니다';
     if (!here)        return A + '에 놓기';
     if (there === id) return '자리 바꾸기';
@@ -121,7 +128,7 @@ PX.workspace = (() => {
       '<div class="blank">' +
         PX.icon('grid', 26, 'blank__i') +
         '<p class="title">열어 둔 화면이 없습니다</p>' +
-        '<p class="cap">왼쪽 탭을 누르면 여기에 열립니다.<br>' +
+        '<p class="cap">탭을 누르면 여기에 열립니다.<br>' +
         '탭을 끌어다 놓으면 두 칸으로 나눌 수 있습니다.</p>' +
       '</div>');
   }
@@ -145,8 +152,7 @@ PX.workspace = (() => {
   function wireGutter(root) {
     const gb = $('.gutter__b', root), split = $('.split', root);
     if (!gb || !split) return;
-    const narrow = () => $('#screen').classList.contains('is-narrow');
-    gb.setAttribute('aria-orientation', narrow() ? 'horizontal' : 'vertical');
+    gb.setAttribute('aria-orientation', stacked() ? 'horizontal' : 'vertical');
 
     const paint = v => {
       split.style.setProperty('--ratio', v);
@@ -171,8 +177,8 @@ PX.workspace = (() => {
       gb.classList.add('is-held');
       try { gb.setPointerCapture(e.pointerId); } catch (_) {}
       const move = ev => {
-        const r = narrow() ? (ev.clientY - box.top) / box.height
-                           : (ev.clientX - box.left) / box.width;
+        const r = stacked() ? (ev.clientY - box.top) / box.height
+                            : (ev.clientX - box.left) / box.width;
         v = clamp(r, MIN, MAX);
         paint(v);
         ev.preventDefault();
@@ -249,10 +255,9 @@ PX.workspace = (() => {
           const box = live.split().getBoundingClientRect();
           const inside = ev.clientX >= box.left && ev.clientX <= box.right &&
                          ev.clientY >= box.top  && ev.clientY <= box.bottom;
-          const narrow = $('#screen').classList.contains('is-narrow');
           side = !inside ? null
-            : narrow ? (ev.clientY < box.top + box.height / 2 ? 'l' : 'r')
-                     : (ev.clientX < box.left + box.width / 2 ? 'l' : 'r');
+            : stacked() ? (ev.clientY < box.top + box.height / 2 ? 'l' : 'r')
+                        : (ev.clientX < box.left + box.width / 2 ? 'l' : 'r');
           live.zones().forEach(z => {
             const own = z.dataset.side;
             z.classList.toggle('is-on', own === side);

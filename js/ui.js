@@ -26,7 +26,6 @@
   /* ---------------- 작은 조각 ---------------- */
   PX.ui.zoneName = id => { const z = D.zone(id); return z ? z.name : '위치 미지정'; };
   PX.ui.src = s => '<span class="src">' + esc(s) + '</span>';
-  PX.ui.sep = () => '<span class="sb__sep">·</span>';
 
   /** 상태를 색 있는 글자로 (배지를 남발하지 않는다) */
   PX.ui.zoneState = id => {
@@ -123,20 +122,12 @@
     const gs = PX.store.gearState();
     const urg = { '긴급':'red', '주의':'orange', '일반':'' }[d.urgency];
 
+    /* 진짜 폰의 상태 바처럼 기본 정보만 얇게 둔다 — 시각은 왼쪽, 장비는 오른쪽.
+       사건 번호·단계·내 역할·최신 지휘 지시는 여기서 빼고 '작전 상태 상세'(>)로 넘긴다.
+       화면 맨 위를 두 줄이나 먹으면 정작 일할 자리가 그만큼 줄어든다. */
     host.innerHTML =
-      '<button type="button" class="sb__main" aria-expanded="' + st.inspector + '">' +
-        '<span class="sb__l1">' +
-          '<span class="sb__id">' + esc(d.id) + '</span>' + PX.ui.sep() +
-          '<span class="cap">' + esc(d.phase) + '</span>' + PX.ui.sep() +
-          '<span class="cap sb__role">내 역할 ' + esc(d.role) + '</span>' +
-        '</span>' +
-        '<span class="sb__l2">' +
-          '<span class="micro" style="flex:0 0 auto">최신 지시</span>' +
-          '<span class="sb__order ell">' + esc(d.order) + '</span>' +
-          (st.ack ? '<span class="stx" data-s="blue" style="flex:0 0 auto">수신 확인</span>' : '') +
-        '</span>' +
-      '</button>' +
-
+      '<span class="sb__now num">' + esc(d.updatedAt) + '</span>' +
+      '<span class="sb__gap"></span>' +
       '<span class="sb__right">' +
         '<span class="status"><span class="pip-dot" data-s="' + urg + '"></span>' +
           '<span class="status__t">' + esc(d.urgency) + '</span></span>' +
@@ -145,7 +136,6 @@
           PX.icon('signal', 17) +
           '<span class="pip-dot" data-s="' + gs + '"></span><b>' + esc(a.link) + '</b>' +
         '</span>' +
-        '<span class="status num">' + esc(d.updatedAt) + '</span>' +
         '<button type="button" class="ibtn sb__more" aria-label="작전 상태 상세" ' +
           'aria-expanded="' + st.inspector + '">' + PX.icon('chevron', 19) + '</button>' +
       '</span>';

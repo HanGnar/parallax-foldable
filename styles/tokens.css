@@ -94,7 +94,7 @@
   --rail-w:78px;
   --ctrl-w:132px;     /* 오른쪽 데모 조작 바 */
   --tap:44px;
-  --statusbar-h:58px;
+  --statusbar-h:36px;   /* 기본 정보만 얹는 얇은 줄 */
   --dock-h:66px;
 
   --font:-apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",

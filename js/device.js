@@ -13,7 +13,6 @@
 PX.device = (() => {
   const root = document.documentElement;
   const rig = $('#rig'), dev = $('#device'), screenEl = $('#screen');
-  const foldBtn = $('#foldbtn'), foldTxt = $('#foldbtn-t');
   const Q = new URLSearchParams(location.search);
   const S = () => PX.store.state;
 
@@ -21,6 +20,8 @@ PX.device = (() => {
 
   const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const flat = () => dev.classList.contains('is-flat');
+  /* 세로로 세우면 힌지가 눕는다. 도는 축도, 끄는 방향도 같이 눕는다 */
+  const tall = () => root.dataset.stand === 'tall';
 
   /* ---------- 목업이냐 실기기냐 ----------
      navigator.devicePosture 는 데스크톱 크로미움에도 있다.
@@ -100,15 +101,8 @@ PX.device = (() => {
     settle = setTimeout(done, 700);
   }
 
-  function label(p) {
-    if (!foldTxt) return;
-    foldTxt.textContent = p === 'open' ? '접기' : '펼치기';
-    foldBtn.setAttribute('aria-pressed', String(p === 'open'));
-  }
-
   function tell(p) {
     root.dataset.posture = p;
-    label(p);
     if (PX.ui.measure) PX.ui.measure();
     if (S().fold !== p) PX.store.set(s => {
       s.fold = p; s.inspector = false; s.combosOpen = false;
@@ -151,21 +145,23 @@ PX.device = (() => {
     if (mode !== 'mock' || (e.button != null && e.button > 0)) return;
     if (e.target.closest(SKIP)) return;
 
-    const x0 = e.clientX, a0 = angle, t0 = performance.now();
-    let on = false, far = 0, lx = x0, lt = t0, v = 0;
+    /* 가로로 누웠으면 좌우로, 세로로 세웠으면 위아래로 끈다 */
+    const axis = ev => tall() ? ev.clientY : ev.clientX;
+    const p0 = axis(e), a0 = angle, t0 = performance.now();
+    let on = false, far = 0, lp = p0, lt = t0, v = 0;
     try { rig.setPointerCapture(e.pointerId); } catch (_) {}
 
     const move = ev => {
-      const dx = ev.clientX - x0;
-      far = Math.max(far, Math.abs(dx));
+      const d = axis(ev) - p0;
+      far = Math.max(far, Math.abs(d));
       if (!on) {
         if (far < 6) return;
         on = true; held = true;
         clearTimeout(settle); setFlat(false); ghosts();
       }
-      live(a0 - dx * 0.85);                 /* 오른쪽으로 밀면 덮인다 */
+      live(a0 - d * 0.85);                  /* 오른쪽(아래)으로 밀면 덮인다 */
       const t = performance.now();
-      if (t - lt > 20) { v = (ev.clientX - lx) / (t - lt); lx = ev.clientX; lt = t; }
+      if (t - lt > 20) { v = (axis(ev) - lp) / (t - lt); lp = axis(ev); lt = t; }
       ev.preventDefault();
     };
     const up = () => {
@@ -187,28 +183,73 @@ PX.device = (() => {
     rig.addEventListener('pointercancel', up);
   });
 
-  /* ---------- 기기 색 (Star White / Night Sky) ---------- */
-  bind($('.demo'), 'click', '[data-tone]', el => {
-    root.dataset.tone = el.dataset.tone;
-    try { localStorage.setItem('parallax.phone.tone', el.dataset.tone); } catch (_) {}
-    paintTone();
-  });
-  function paintTone() {
-    $$('.demo [data-tone]').forEach(b =>
-      b.setAttribute('aria-pressed', String(b.dataset.tone === root.dataset.tone)));
-  }
-  paintTone();
+  /* ---------- 기기 방향 (가로 / 세로) ----------
+     가로 164.6 × 117.8 ↔ 세로 117.8 × 164.6. 같은 기기를 90도 돌려 세운다.
+     방향이 바뀌면 --mm 도 몸통 크기도 달라지므로, 기울어져 있던 복제본을 다시 뜬다. */
+  function setStand(v) {
+    if (root.dataset.stand === v) return;
 
-  /* ---------- 키보드 ---------- */
-  if (foldBtn) {
-    foldBtn.addEventListener('click', () => go(angle > 90 ? 'closed' : 'open'));
-    foldBtn.addEventListener('keydown', e => {
-      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-      if (mode !== 'mock') return;
-      e.preventDefault();
-      at(angle + (e.key === 'ArrowRight' ? -15 : 15));
-    });
+    /* 돌기 전 몸통 크기를 재어 둔다. 돌아온 자리에서 이 크기로 출발시키면
+       '손으로 기기를 돌렸다'로 읽힌다. 그냥 나타났다 사라지면 두 화면이 된다. */
+    const b0 = dev.getBoundingClientRect();
+
+    root.dataset.stand = v;
+    try { localStorage.setItem('parallax.phone.stand', v); } catch (_) {}
+    paintStand();
+    if (PX.ui.measure) PX.ui.measure();
+    if (mode === 'mock' && !flat()) ghosts();
+
+    if (reduced() || mode !== 'mock' || !dev.animate) return;
+    const b1 = dev.getBoundingClientRect();
+    /* 90도 돌린 새 몸통이 옛 몸통과 꼭 같은 자리를 차지하게 하는 배율 */
+    const k = b1.height ? b0.width / b1.height : 1;
+    /* 세우면 시계 방향, 눕히면 반시계 방향으로 돈다 */
+    const from = v === 'tall' ? -90 : 90;
+
+    /* 돌아가는 네모는 중간 각도에서 자리를 가장 많이 먹는다.
+       164.6×117.8 짜리를 45도로 돌리면 가로가 창 폭만큼 벌어져 잘린다.
+       그래서 시점마다 '그 각도에서 들어갈 만큼'까지만 키운다. */
+    const room = rig.getBoundingClientRect();
+    const W = b1.width, H = b1.height, STEPS = 7, keys = [];
+    for (let i = 0; i <= STEPS; i++) {
+      const p = i / STEPS;
+      if (p === 1) { keys.push({ transform:'none', offset:1 }); break; }
+      const deg = from * (1 - p);
+      const rad = Math.abs(deg) * Math.PI / 180;
+      const bw = W * Math.cos(rad) + H * Math.sin(rad);
+      const bh = W * Math.sin(rad) + H * Math.cos(rad);
+      const want = k + (1 - k) * p;                       /* 옛 크기 → 제 크기 */
+      const fit  = Math.min(room.width / bw, room.height / bh) * .96;
+      keys.push({ offset:p,
+        transform:'rotate(' + deg.toFixed(2) + 'deg) scale(' +
+                  Math.min(want, fit).toFixed(4) + ')' });
+    }
+    /* transform 은 비어 있다(.device 는 translate·scale 을 따로 쓴다).
+       그래서 --fold 가 쥐고 있는 값을 건드리지 않고 겹쳐 쓸 수 있다 */
+    dev.animate(keys, { duration:620, easing:'cubic-bezier(.32,.72,0,1)' });
+    /* 도는 동안 속을 살짝 죽인다. 옆으로 누운 글자가 덜 읽힌다.
+       preserve-3d 인 .device 가 아니라 .rig 에 건다 — 거기 걸면 3D 가 납작해진다 */
+    rig.animate(
+      [{ opacity:.35 }, { opacity:.55, offset:.35 }, { opacity:1 }],
+      { duration:620, easing:'cubic-bezier(.32,.72,0,1)' });
   }
+  function paintStand() {
+    const v = root.dataset.stand;
+    $$('.demo [data-stand]').forEach(b =>
+      b.setAttribute('aria-pressed', String(b.dataset.stand === v)));
+  }
+  bind($('.demo'), 'click', '[data-stand]', el => setStand(el.dataset.stand));
+  paintStand();
+
+  /* ---------- 키보드 ----------
+     아래에 있던 접기 버튼을 걷어냈으므로, 각도를 15도씩 보는 일은
+     '화면' 칸의 두 단추가 맡는다. 거기에 초점을 두고 ← → 를 누른다 */
+  $$('.demo [data-fold]').forEach(b => b.addEventListener('keydown', e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (mode !== 'mock') return;
+    e.preventDefault();
+    at(angle + (e.key === 'ArrowRight' ? -15 : 15));
+  }));
 
   /* ---------- 실기기 ---------- */
   function syncReal(first) {
@@ -268,5 +309,6 @@ PX.device = (() => {
   }
 
   PX.ui.foldTo = p => go(p);
-  return { refresh, go, at, angle: () => angle, mode: () => mode };
+  return { refresh, go, at, setStand, angle: () => angle, mode: () => mode,
+           stand: () => root.dataset.stand };
 })();

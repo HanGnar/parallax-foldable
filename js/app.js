@@ -135,10 +135,20 @@
     });
   }
 
-  /* ---------- 좁은 화면 ---------- */
-  /* 안쪽 화면은 가로로 넓다(1.42:1). 좌우 2단이 이 비율에 맞는 배치라
-     어지간해서는 쌓지 않고, 정말 좁아질 때만 위아래로 돌린다 */
-  function measure(){ screen.classList.toggle('is-narrow', screen.clientWidth < 520); }
+  /* ---------- 화면 비율 ---------- */
+  /* 가로로 누운 화면은 1.42:1 로 넓다. 좌우 2단이 이 비율에 맞는 배치라
+     어지간해서는 쌓지 않고, 정말 좁아질 때만 위아래로 돌린다.
+     세로로 세우면 반대로 높이가 길어진다 — 그때는 늘 위아래로 나눈다.
+     기기 방향(data-stand)을 보지 않고 실제 화면 비율만 본다.
+     실기기에서 세로로 들었을 때도 같은 판정이 그대로 통한다. */
+  function measure(){
+    const w = screen.clientWidth, h = screen.clientHeight;
+    const tall = h > w * 1.04;
+    screen.classList.toggle('is-tall', tall);
+    /* is-narrow 는 '가로인데 좁다'는 뜻이다. 세로로 선 화면은 폭이 좁은 게 당연하므로
+       여기에 걸리면 안 된다 — 걸리면 Dock 글자까지 같이 작아진다 */
+    screen.classList.toggle('is-narrow', !tall && w < 520);
+  }
   PX.ui.measure = measure;
 
   /* ---------- 한 번만 거는 조작 ----------
@@ -149,10 +159,8 @@
   bind(pip, 'click', '[data-a="x"]',      () =>
     PX.store.set(s => { s.pip = null; s.video.playing = false; }));
 
-  $$('.statusbar[data-sb]').forEach(h => {
-    bind(h, 'click', '.sb__main', toggleInsp);
-    bind(h, 'click', '.sb__more', toggleInsp);
-  });
+  /* 상태 바에서 상세로 들어가는 길은 오른쪽 끝의 > 하나다 */
+  $$('.statusbar[data-sb]').forEach(h => bind(h, 'click', '.sb__more', toggleInsp));
   [[scrim, insp], [scrimC, inspC]].forEach(([v]) =>
     v.addEventListener('click', () => PX.store.set(s => { s.inspector = false; })));
   bind($('.demo'), 'click', '[data-fold]', el => PX.act.fold(el.dataset.fold));
@@ -177,6 +185,14 @@
   window.addEventListener('resize', measure);
 
   PX.store.init();
+  /* ?open=ar · ?open=space,ar — 특정 화면을 열어 둔 채로 시작한다.
+     시연할 때와 배포된 주소에서 화면 하나를 바로 확인할 때 쓴다 */
+  (() => {
+    const q = new URLSearchParams(location.search).get('open');
+    if (!q) return;
+    const ids = q.split(',').map(x => x.trim()).filter(id => PX.data.panel(id));
+    if (ids.length) PX.store.state.panes = { l:ids[0] || null, r:ids[1] || null };
+  })();
   PX.store.on(render);
   render();
   PX.ui.clock();

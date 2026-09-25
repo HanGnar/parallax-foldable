@@ -115,43 +115,54 @@
   transform:rotateY(calc((180 - var(--fold)) * 1deg));
 }
 
+/* 모서리의 꺾임을 가로축(--side)과 세로축(--vert) 으로 나눠 둔다.
+   기기를 가로로 눕히느냐 세로로 세우느냐에 따라 '힌지 쪽'이 달라지고,
+   힌지 쪽에는 꺾임이 없어야 한다. 넣으면 다 폈을 때 가운데에 밝은 금이 하나 생긴다.
+   테두리 폭(3mm 남짓) 안에서 빛이 꺾이도록 stop 을 mm 로 잡는다.
+   % 로 잡으면 얇은 베젤이 그라데이션의 밝은 끝만 잘라 써서 하얗게 뜬다. */
 .face{
-  position:absolute; inset:0; overflow:hidden;
-  backface-visibility:hidden; -webkit-backface-visibility:hidden;
-  /* 테두리 폭(3mm 남짓) 안에서 빛이 꺾이도록 stop 을 mm 로 잡는다.
-     % 로 잡으면 얇은 베젤이 그라데이션의 밝은 끝만 잘라 써서 하얗게 뜬다. */
-  background:
-    var(--side),
-    /* 위아래 모서리의 꺾임 + 가운데는 어두운 금속 */
-    linear-gradient(180deg,
-      var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
-      var(--rim-c) calc(1.2 * var(--mm)), var(--rim-d) calc(2.6 * var(--mm)),
-      var(--rim-d) calc(100% - 2.6 * var(--mm)),
-      var(--rim-c) calc(100% - 1.2 * var(--mm)),
-      var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
-}
-
-/* 옆모서리의 꺾임은 '바깥으로 드러난 쪽'에만 있다.
-   힌지 쪽에도 넣으면 다 폈을 때 가운데에 밝은 금이 하나 생긴다. */
-.face{
-  --side:linear-gradient(90deg,
+  /* 가로축 — 비쳐야 할 곳은 투명하게 둔다(아래 세로축이 몸체 색을 깐다) */
+  --x-both:linear-gradient(90deg,
     var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
     var(--rim-c) calc(1.2 * var(--mm)), rgba(0,0,0,0) calc(2.6 * var(--mm)),
     rgba(0,0,0,0) calc(100% - 2.6 * var(--mm)),
     var(--rim-c) calc(100% - 1.2 * var(--mm)),
     var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
-}
-.face--inner-left{
-  --side:linear-gradient(90deg,
+  --x-l:linear-gradient(90deg,
     var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
     var(--rim-c) calc(1.2 * var(--mm)), rgba(0,0,0,0) calc(2.6 * var(--mm)));
-}
-.face--inner-right{
-  --side:linear-gradient(90deg,
+  --x-r:linear-gradient(90deg,
     rgba(0,0,0,0) calc(100% - 2.6 * var(--mm)),
     var(--rim-c) calc(100% - 1.2 * var(--mm)),
     var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
+
+  /* 세로축 — 맨 아래 깔리는 층이라 가운데를 어두운 금속으로 채운다 */
+  --y-both:linear-gradient(180deg,
+    var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
+    var(--rim-c) calc(1.2 * var(--mm)), var(--rim-d) calc(2.6 * var(--mm)),
+    var(--rim-d) calc(100% - 2.6 * var(--mm)),
+    var(--rim-c) calc(100% - 1.2 * var(--mm)),
+    var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
+  --y-t:linear-gradient(180deg,
+    var(--rim-a) 0, var(--rim-b) calc(.4 * var(--mm)),
+    var(--rim-c) calc(1.2 * var(--mm)), var(--rim-d) calc(2.6 * var(--mm)),
+    var(--rim-d) 100%);
+  --y-b:linear-gradient(180deg,
+    var(--rim-d) 0, var(--rim-d) calc(100% - 2.6 * var(--mm)),
+    var(--rim-c) calc(100% - 1.2 * var(--mm)),
+    var(--rim-b) calc(100% - .4 * var(--mm)), var(--rim-a) 100%);
+
+  --side:var(--x-both);
+  --vert:var(--y-both);
+
+  position:absolute; inset:0; overflow:hidden;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  background:var(--side), var(--vert);
 }
+
+/* 가로로 누웠을 때 — 힌지는 가운데 세로선. 안쪽 두 면은 힌지 쪽 꺾임을 뺀다 */
+.face--inner-left {--side:var(--x-l)}
+.face--inner-right{--side:var(--x-r)}
 
 /* 모서리 네 곳의 짧은 반짝임. 화면 아래(z-index 1)에 깔려 테두리에서만 읽힌다 */
 .face{
@@ -330,6 +341,123 @@
 .device .screen{opacity:0; visibility:hidden; pointer-events:none}
 .device.is-flat .screen{opacity:1; visibility:visible; pointer-events:auto}
 .device.is-flat .half{visibility:hidden}
+
+/* =========================================================================
+   세로로 세운 목업 — 같은 기기를 90도 돌려 세운다.
+   힌지가 가로로 눕고 두 짝이 위아래가 된다. 조개껍데기처럼 접힌다.
+   각도는 여전히 --fold 하나뿐이고, 도는 축만 Y 에서 X 로 바뀐다.
+   실측도 그대로 돈다 — 몸통 117.8 × 164.6 · 화면 110.9 × 157.8.
+   ========================================================================= */
+[data-stand="tall"]{
+  --dev-w:calc(117.8 * var(--mm));
+  --dev-h:calc(164.6 * var(--mm));
+  --bezel-x:calc(3.45 * var(--mm));   /* 베젤도 같이 돈다 */
+  --bezel-y:calc(3.4  * var(--mm));
+}
+[data-stand="tall"][data-mode="mock"]{
+  --mm:min( calc((100vw - 40px - var(--ctrl-w)) / 121),
+            calc((100vh - 28px) / 168), 9px );
+}
+
+/* 접으면 아래 반쪽만 남는다. 그만큼 위로 되밀어 가운데에 둔다 */
+[data-stand="tall"] .device{translate:0 calc(-25% * var(--closed))}
+
+/* 접어도 폭은 그대로다. 그림자는 가운데에 두고 넓이만 고정한다 */
+[data-stand="tall"] .shadow{left:50%; width:calc(108 * var(--mm))}
+
+/* ---------- 위아래 두 짝 ---------- */
+[data-stand="tall"] .leaf{top:auto; left:0; width:100%; height:50%}
+[data-stand="tall"] .leaf--right{bottom:0; right:auto}      /* 아래 짝 : 고정 */
+[data-stand="tall"] .leaf--left{                            /* 위 짝 : 힌지를 축으로 돈다 */
+  top:0; left:0;
+  transform-origin:center bottom;
+  transform:rotateX(calc((180 - var(--fold)) * -1deg));
+}
+
+/* 힌지 쪽(위 짝의 아래 모서리 · 아래 짝의 위 모서리)에는 꺾임을 두지 않는다 */
+[data-stand="tall"] .face--inner-left {--side:var(--x-both); --vert:var(--y-t)}
+[data-stand="tall"] .face--inner-right{--side:var(--x-both); --vert:var(--y-b)}
+
+/* 바깥쪽 모서리만 둥글다 */
+[data-stand="tall"] .face--inner-left {
+  border-radius:calc(5.5*var(--mm)) calc(5.5*var(--mm)) 0 0}
+[data-stand="tall"] .face--inner-right{
+  border-radius:0 0 calc(5.5*var(--mm)) calc(5.5*var(--mm))}
+
+/* 모서리 반짝임도 바깥쪽 두 곳만 */
+[data-stand="tall"] .face--inner-left::before{
+  background-image:var(--sp-tl), var(--sp-tr); background-position:0 0, 100% 0}
+[data-stand="tall"] .face--inner-right::before{
+  background-image:var(--sp-bl), var(--sp-br); background-position:0 100%, 100% 100%}
+
+/* 뒤집히는 축이 바뀌었으니 뒷면도 같은 축으로 미리 뒤집어 둔다.
+   그대로 두면 커버 화면 글자가 거꾸로 선다 */
+[data-stand="tall"] .face--cover,
+[data-stand="tall"] .face--back{transform:rotateX(180deg) translateZ(1px)}
+
+/* 접힐수록 안쪽이 어두워진다. 빛은 열린 바깥쪽(위)에서 들어온다 */
+[data-stand="tall"] .face--inner-left::after{
+  background:linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.46))}
+[data-stand="tall"] .face--inner-right::after{
+  background:linear-gradient(0deg, rgba(0,0,0,0), rgba(0,0,0,.46))}
+
+/* ---------- 안쪽 화면을 위아래로 반씩 나눠 얹는 자리 ---------- */
+[data-stand="tall"] .wrap{top:auto; bottom:auto;
+  left:var(--bezel-x); right:var(--bezel-x)}
+[data-stand="tall"] .face--inner-left  .wrap{top:var(--bezel-y); bottom:0;
+  border-radius:calc(4.2*var(--mm)) calc(4.2*var(--mm)) 0 0}
+[data-stand="tall"] .face--inner-right .wrap{bottom:var(--bezel-y); top:0;
+  border-radius:0 0 calc(4.2*var(--mm)) calc(4.2*var(--mm))}
+
+[data-stand="tall"] .half{top:auto; bottom:auto; left:0; right:auto;
+  width:100%; height:calc(157.8 * var(--mm))}
+[data-stand="tall"] .face--inner-left  .half{top:0; left:0; right:auto}
+[data-stand="tall"] .face--inner-right .half{bottom:0; left:0; right:auto}
+
+/* ---------- 커버 화면 ----------
+   세워서 접으면 커버가 가로로 눕는다. 접힘 베젤도 같이 돈다 */
+[data-stand="tall"] .cscreen{inset:calc(3.45*var(--mm)) calc(2.75*var(--mm))}
+
+/* ---------- 옆면과 버튼 ----------
+   90도 돌려 세웠으니 버튼이 있던 오른쪽 모서리가 아래로 온다 */
+[data-stand="tall"] .edge{
+  top:auto; bottom:auto;
+  left:calc(5.5*var(--mm)); right:calc(5.5*var(--mm));
+  width:auto; height:calc(5.2 * var(--mm));
+  background:linear-gradient(90deg,
+    var(--rim-b) 0%, var(--rim-d) 26%, var(--rim-c) 50%, var(--rim-d) 74%, var(--rim-b) 100%);
+}
+[data-stand="tall"] .leaf--right .edge{top:auto; bottom:0;
+  transform-origin:center bottom; transform:rotateX(90deg) rotateY(180deg)}
+[data-stand="tall"] .leaf--left  .edge{bottom:auto; top:0;
+  transform-origin:center top;    transform:rotateX(-90deg) rotateY(180deg)}
+
+[data-stand="tall"] .btn{left:auto; right:auto; top:14%; bottom:14%; height:auto;
+  background:linear-gradient(90deg, var(--rim-b), var(--rim-c))}
+[data-stand="tall"] .btn--side{right:26%;   width:9%}
+[data-stand="tall"] .btn--up  {right:44%;   width:6.5%}
+[data-stand="tall"] .btn--dn  {right:52.5%; width:6.5%}
+
+/* ---------- 힌지 ---------- */
+[data-stand="tall"] .spine{
+  top:calc(50% - 2.6 * var(--mm)); bottom:auto;
+  left:calc(2.4 * var(--mm)); right:calc(2.4 * var(--mm));
+  width:auto; height:calc(2.6 * var(--mm));
+  border-radius:calc(2.4*var(--mm)) calc(2.4*var(--mm)) 0 0;
+  -webkit-mask-image:linear-gradient(90deg, rgba(0,0,0,0) 0,
+    #000 calc(4 * var(--mm)), #000 calc(100% - 4 * var(--mm)), rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(90deg, rgba(0,0,0,0) 0,
+    #000 calc(4 * var(--mm)), #000 calc(100% - 4 * var(--mm)), rgba(0,0,0,0) 100%);
+  background:
+    repeating-linear-gradient(180deg,
+      rgba(255,255,255,.05) 0 1px, rgba(0,0,0,.05) 1px 2px),
+    linear-gradient(180deg,
+      var(--hinge-c) 0%, var(--hinge-b) 34%, var(--hinge-a) 72%, var(--hinge-b) 100%);
+}
+
+/* 유리 반사도 도는 축을 따라간다 */
+[data-stand="tall"] .screen::after,
+[data-stand="tall"] .cscreen::after{translate:0 calc(-22% * var(--closed))}
 
 /* ---------- 조작 안내 ---------- */
 .hint{
