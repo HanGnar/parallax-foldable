@@ -69,13 +69,36 @@ PX.panels.ar = (() => {
     catch (_) { return false; }
   };
 
+  /** 자리를 옮기거나 기기를 돌리면 상자 크기가 달라진다.
+      옮긴 다음 한 번 다시 재고 그리게 한다. 안 하면 옛 크기로 멈춰 있는다 */
+  function nudge() {
+    if (!viewer) return;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (!viewer) return;
+      try { if (viewer.updateFraming) viewer.updateFraming(); } catch (_) {}
+      /* 각도를 그대로 다시 써서 '다시 그려라' 표시를 남긴다 */
+      const o = viewer.getAttribute('camera-orbit');
+      if (o) viewer.setAttribute('camera-orbit', o);
+    }));
+  }
+  PX.panels.arNudge = nudge;
+
   /** 자리를 옮겨 다녀도 상태 표시가 따라오게 한다 */
   let told = false;
   function mark() {
     const h = viewer && viewer.closest('.glb');
     if (h) h.classList.toggle('is-ready', ready);
     /* 다 읽은 순간 한 번만 다시 그려서 '불러오는 중' 자리를 걷어낸다 */
-    if (ready && !told) { told = true; setTimeout(() => PX.store.set(() => {}), 380); }
+    if (ready && !told) {
+      told = true;
+      /* 혼자 도는 설정이 꺼져 있으면(움직임 줄이기) 딱 한 번만 그린다.
+         그 한 번이 크기가 정해지기 전에 지나가면 영영 빈 상자로 남는다.
+         읽힌 직후에 몇 번 더 '다시 그려라'를 보내 둔다. */
+      nudge();
+      setTimeout(() => PX.store.set(() => {}), 380);
+      setTimeout(nudge, 700);
+      setTimeout(nudge, 1600);
+    }
   }
 
   function lib() {
@@ -109,6 +132,10 @@ PX.panels.ar = (() => {
     srcs = routes(); at = 0;
     v.setAttribute('src', srcs[0]);
     v.setAttribute('alt', 'PARALLAX AR 글래스 3D 모형 (가상 장비)');
+    /* 기본값(auto)은 '화면에 보일 때' 읽는다. 이 화면은 3D 로 변형된 기기 프레임
+       안에 있어서 그 판정이 어긋나고, 어긋나면 영영 읽지 않는다. 바로 읽힌다. */
+    v.setAttribute('loading', 'eager');
+    v.setAttribute('reveal', 'auto');
     v.setAttribute('camera-orbit', '0deg 90deg 85%');
     v.setAttribute('field-of-view', '26deg');
     v.setAttribute('interaction-prompt', 'none');
@@ -258,6 +285,7 @@ PX.panels.ar = (() => {
         if (!viewer) viewer = make();
         host.appendChild(viewer);
         if (viewer.loaded) ready = true;
+        nudge();
         mark();
       }
     }

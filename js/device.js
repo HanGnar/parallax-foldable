@@ -199,7 +199,10 @@ PX.device = (() => {
     if (PX.ui.measure) PX.ui.measure();
     if (mode === 'mock' && !flat()) ghosts();
 
-    if (reduced() || mode !== 'mock' || !dev.animate) return;
+    if (reduced() || mode !== 'mock' || !dev.animate) {
+      if (PX.panels && PX.panels.arNudge) PX.panels.arNudge();
+      return;
+    }
     const b1 = dev.getBoundingClientRect();
     /* 90도 돌린 새 몸통이 옛 몸통과 꼭 같은 자리를 차지하게 하는 배율 */
     const k = b1.height ? b0.width / b1.height : 1;
@@ -226,7 +229,11 @@ PX.device = (() => {
     }
     /* transform 은 비어 있다(.device 는 translate·scale 을 따로 쓴다).
        그래서 --fold 가 쥐고 있는 값을 건드리지 않고 겹쳐 쓸 수 있다 */
-    dev.animate(keys, { duration:620, easing:'cubic-bezier(.32,.72,0,1)' });
+    const spin = dev.animate(keys, { duration:620, easing:'cubic-bezier(.32,.72,0,1)' });
+    /* 다 돌고 나면 3D 모형에게 다시 재라고 알린다. 상자 크기가 크게 달라졌다 */
+    const settle = () => { if (PX.panels && PX.panels.arNudge) PX.panels.arNudge(); };
+    spin.addEventListener('finish', settle);
+    spin.addEventListener('cancel', settle);
     /* 도는 동안 속을 살짝 죽인다. 옆으로 누운 글자가 덜 읽힌다.
        preserve-3d 인 .device 가 아니라 .rig 에 건다 — 거기 걸면 3D 가 납작해진다 */
     rig.animate(
